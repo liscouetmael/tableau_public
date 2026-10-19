@@ -1,0 +1,231 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>L'orbite d'Arenstorf — Carnet scientifique</title>
+  <meta name="description" content="Le problème à trois corps restreint, l'orbite périodique d'Arenstorf et l'intégration numérique d'EDO.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=JetBrains+Mono&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+  <link rel="stylesheet" href="../css/style.css">
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
+  <script defer src="../js/main.js"></script>
+  <script defer src="../js/arenstorf.js"></script>
+  <style>
+    #fig-orbite, #fig-methodes { aspect-ratio: 7 / 6; }
+  </style>
+</head>
+<body>
+
+<header class="site-header">
+  <div class="wrap">
+    <a class="site-title" href="../index.html">Maël <span>· carnet scientifique</span></a>
+    <nav class="site-nav">
+      <a href="../index.html">Projets</a>
+      <a href="../a-propos.html">À propos</a>
+    </nav>
+  </div>
+</header>
+
+<main class="wrap">
+<article>
+  <header class="post-header">
+    <h1>L'orbite d'Arenstorf et le problème à trois corps restreint</h1>
+    <p class="lede">Une trajectoire en forme de boucle entre la Terre et la Lune, qui revient
+       exactement à son point de départ, et qui fait échouer les méthodes numériques trop naïves.</p>
+    <div class="post-meta">
+      <span>Septembre 2026</span>
+      <span>·</span>
+      <span>Projet académique</span>
+      <span>·</span>
+      <span class="tag">mécanique céleste</span>
+      <span class="tag">EDO</span>
+      <span class="tag">Runge-Kutta</span>
+    </div>
+  </header>
+
+  <div class="abstract">
+    <strong>En bref</strong><br>
+    On modélise un petit satellite soumis à l'attraction de la Terre et de la Lune
+    (le <em>problème à trois corps restreint</em>). En 1963, Richard Arenstorf a montré
+    qu'il existe des orbites périodiques qui passent alternativement près de la Terre
+    et de la Lune. J'en intègre une numériquement, et je compare la méthode d'Euler à la
+    méthode de Runge-Kutta d'ordre 4 : la première échoue, même avec des dizaines de milliers de pas.
+  </div>
+
+  <nav class="toc">
+    <strong>Sommaire</strong>
+    <ol>
+      <li><a href="#contexte">Contexte</a></li>
+      <li><a href="#modele">Le modèle</a></li>
+      <li><a href="#orbite">L'orbite d'Arenstorf</a></li>
+      <li><a href="#numerique">Intégration numérique</a></li>
+      <li><a href="#applications">Intérêt et applications</a></li>
+      <li><a href="#references">Références</a></li>
+    </ol>
+  </nav>
+
+  <h2 id="contexte">1. Contexte</h2>
+  <p>Le problème à deux corps (une planète autour d'une étoile, par exemple) se résout
+     entièrement : les trajectoires sont des coniques, comme l'a montré Kepler. Dès qu'on ajoute
+     un troisième corps, tout change. Poincaré a montré à la fin du XIX<sup>e</sup> siècle qu'il
+     n'existe pas de solution générale exprimable en formules simples, et que le mouvement peut
+     être <em>chaotique</em>.</p>
+  <p>Une simplification très utile consiste à supposer que le troisième corps (un satellite,
+     une sonde) a une masse négligeable : il subit l'attraction des deux autres sans les
+     perturber. C'est le <strong>problème à trois corps restreint</strong>. Si de plus les deux
+     corps massifs tournent l'un autour de l'autre sur des cercles, on parle de problème
+     restreint <em>circulaire</em>. C'est une très bonne approximation du système
+     Terre–Lune–vaisseau spatial.</p>
+
+  <h2 id="modele">2. Le modèle</h2>
+  <p>On se place dans un repère qui tourne avec la Terre et la Lune, centré sur leur barycentre.
+     Dans ce repère, les deux corps sont immobiles. On choisit des unités où la distance
+     Terre–Lune vaut 1, la masse totale vaut 1 et la vitesse angulaire de rotation vaut 1.
+     Le seul paramètre restant est le rapport de masse</p>
+  $$\mu = \frac{m_{\text{Lune}}}{m_{\text{Terre}} + m_{\text{Lune}}} \approx 0{,}012277471 .$$
+  <p>La Terre est alors en \((-\mu, 0)\) et la Lune en \((1-\mu, 0)\). En notant \(\mu' = 1-\mu\),
+     les équations du mouvement du satellite s'écrivent</p>
+  $$
+  \begin{aligned}
+    \ddot x &= x + 2\dot y - \mu' \frac{x+\mu}{r_1^3} - \mu \frac{x-\mu'}{r_2^3}, \\[4pt]
+    \ddot y &= y - 2\dot x - \mu' \frac{y}{r_1^3} - \mu \frac{y}{r_2^3},
+  \end{aligned}
+  $$
+  <p>où \(r_1 = \sqrt{(x+\mu)^2 + y^2}\) et \(r_2 = \sqrt{(x-\mu')^2 + y^2}\) sont les distances
+     du satellite à la Terre et à la Lune.</p>
+  <p>Chaque terme a un sens physique. Les termes \(x\) et \(y\) viennent de la
+     <strong>force centrifuge</strong>, les termes en \(2\dot y\) et \(-2\dot x\) de la
+     <strong>force de Coriolis</strong> (deux forces d'inertie dues à la rotation du repère),
+     et les fractions sont l'<strong>attraction gravitationnelle</strong> de la Terre et de la Lune.</p>
+
+  <h3>Une quantité conservée</h3>
+  <p>Ce système n'a pas d'énergie conservée au sens usuel, mais il admet une intégrale première,
+     la <strong>constante de Jacobi</strong> :</p>
+  $$ C_J = x^2 + y^2 + \frac{2\mu'}{r_1} + \frac{2\mu}{r_2} - \left(\dot x^2 + \dot y^2\right). $$
+  <p>Elle reste exactement constante le long de toute trajectoire. C'est un excellent
+     moyen de vérifier une simulation : si \(C_J\) dérive, c'est que le schéma numérique
+     introduit des erreurs.</p>
+
+  <h2 id="orbite">3. L'orbite d'Arenstorf</h2>
+  <p>En 1963, le mathématicien Richard Arenstorf, qui travaillait pour la NASA, a montré
+     l'existence d'orbites périodiques dans ce problème : le satellite fait des boucles
+     autour de la Terre et de la Lune puis revient <em>exactement</em> à son état initial.
+     Une de ces orbites est devenue un cas test classique en analyse numérique. Elle part de</p>
+  $$ x_0 = 0{,}994,\quad y_0 = 0,\quad \dot x_0 = 0,\quad \dot y_0 = -2{,}00158510637908\ldots $$
+  <p>et sa période vaut \(T \approx 17{,}0652165601580\) (en unités normalisées, soit environ
+     74 jours).</p>
+
+  <figure>
+    <canvas id="fig-orbite" aria-label="Animation de l'orbite d'Arenstorf dans le repère tournant"></canvas>
+    <figcaption>
+      <b>Figure 1.</b> Orbite d'Arenstorf dans le repère tournant, intégrée par RK4 avec 20 000 pas.
+      Le temps s'écoule uniformément : on voit le satellite accélérer fortement lors de ses
+      passages près de la Terre, et ralentir loin d'elle.
+      <span class="controls"><button class="btn" id="replay-orbite">Rejouer</button></span>
+    </figcaption>
+  </figure>
+
+  <p>Le passage près de la Terre est la partie délicate : \(r_1\) devient très petit, donc les
+     termes en \(1/r_1^3\) deviennent énormes, et la vitesse change très vite. Une petite erreur
+     commise à ce moment-là est fortement amplifiée par la suite.</p>
+
+  <h2 id="numerique">4. Intégration numérique</h2>
+  <p>Pour résoudre ces équations sur ordinateur, on les réécrit comme un système du
+     premier ordre sur l'état \(s = (x, y, \dot x, \dot y)\) :</p>
+  $$ \dot s = f(s), \qquad s(0) = s_0 .$$
+  <p>On avance ensuite pas à pas, avec un pas de temps \(h = T/N\).</p>
+
+  <h3>La méthode d'Euler</h3>
+  <p>C'est la plus simple : on suit la tangente pendant un pas,
+     \(s_{n+1} = s_n + h\, f(s_n)\). Son erreur globale est proportionnelle à \(h\)
+     (méthode d'ordre 1) : diviser le pas par 10 ne divise l'erreur que par 10.</p>
+
+  <h3>La méthode de Runge-Kutta d'ordre 4 (RK4)</h3>
+  <p>On évalue la pente en quatre points du pas, puis on en fait une moyenne pondérée :</p>
+  $$
+  \begin{aligned}
+    k_1 &= f(s_n), & k_2 &= f\!\left(s_n + \tfrac h2 k_1\right), \\
+    k_3 &= f\!\left(s_n + \tfrac h2 k_2\right), & k_4 &= f(s_n + h k_3), \\
+  \end{aligned}
+  $$
+  $$ s_{n+1} = s_n + \frac h6 \left(k_1 + 2k_2 + 2k_3 + k_4\right). $$
+  <p>L'erreur est cette fois proportionnelle à \(h^4\) : diviser le pas par 10 divise
+     l'erreur par 10 000, pour seulement quatre fois plus de calculs par pas.</p>
+
+  <figure>
+    <canvas id="fig-methodes" aria-label="Comparaison des trajectoires obtenues par Euler et RK4"></canvas>
+    <figcaption>
+      <b>Figure 2.</b> Une période intégrée avec <span id="pas-label">—</span> pas fixes.
+      <span class="legend"><i style="background:var(--accent-2)"></i>RK4</span>
+      <span class="legend"><i style="background:var(--muted)"></i>Euler</span>
+      <span class="controls">
+        <label>Nombre de pas
+          <input type="range" id="pas-slider" min="3" max="5" step="0.01" value="4">
+        </label>
+      </span>
+      <span class="readout" id="methodes-readout"></span>
+    </figcaption>
+  </figure>
+
+  <p>En jouant avec le curseur, on constate que RK4 referme correctement l'orbite à partir
+     d'environ 10 000 pas, alors qu'Euler produit une trajectoire complètement fausse même
+     avec 100 000 pas : l'erreur commise lors du passage près de la Terre l'envoie sur une orbite
+     tout autre, voire hors du système.</p>
+
+  <div class="note">
+    <strong>Pour aller plus loin :</strong> un pas fixe gaspille du calcul, car il doit être petit
+    partout alors que la difficulté est concentrée près de la Terre. Les méthodes à
+    <em>pas adaptatif</em> (comme Dormand–Prince, le <code>ode45</code> de MATLAB ou le
+    <code>RK45</code> de <code>scipy</code>) estiment l'erreur à chaque pas et réduisent \(h\)
+    seulement quand c'est nécessaire. Elles referment l'orbite avec quelques centaines de pas
+    seulement.
+  </div>
+
+  <h2 id="applications">5. Intérêt et applications</h2>
+  <p>Ce projet n'est pas seulement un exercice. Le problème à trois corps restreint est au
+     cœur de la conception des missions spatiales :</p>
+  <ul>
+    <li><strong>Trajectoires à retour libre.</strong> Les missions Apollo utilisaient des
+        trajectoires qui contournent la Lune et reviennent vers la Terre sans propulsion.
+        C'est grâce à une telle trajectoire que l'équipage d'Apollo 13 a pu rentrer après
+        l'explosion d'un réservoir d'oxygène.</li>
+    <li><strong>Points de Lagrange.</strong> Ce même modèle prédit cinq points d'équilibre.
+        Le télescope James Webb est placé sur une orbite autour du point L2 du système
+        Soleil–Terre.</li>
+    <li><strong>Transferts à basse énergie.</strong> En exploitant finement la dynamique à
+        trois corps, on peut rejoindre la Lune avec beaucoup moins de carburant, au prix d'un
+        trajet plus long. La sonde japonaise Hiten a été sauvée ainsi en 1991.</li>
+    <li><strong>Banc d'essai numérique.</strong> L'orbite d'Arenstorf sert de test standard
+        pour les solveurs d'EDO, justement parce qu'elle punit les méthodes peu précises.</li>
+  </ul>
+  <p>Ce que j'en retiens : le choix de la méthode numérique n'est pas un détail technique.
+     Sur un problème sensible, une méthode d'ordre faible ne donne pas seulement un résultat
+     un peu imprécis, elle donne un résultat <em>qualitativement faux</em>. Vérifier une
+     quantité conservée comme \(C_J\) est un réflexe simple pour s'en rendre compte.</p>
+
+  <h2 id="references">6. Références</h2>
+  <ol class="refs">
+    <li>R. F. Arenstorf, <em>Periodic solutions of the restricted three body problem representing
+        analytic continuations of Keplerian elliptic motions</em>, American Journal of
+        Mathematics 85 (1963).</li>
+    <li>E. Hairer, S. P. Nørsett, G. Wanner, <em>Solving Ordinary Differential Equations I:
+        Nonstiff Problems</em>, Springer (1993). L'orbite d'Arenstorf y sert d'exemple dès
+        l'introduction.</li>
+    <li>V. Szebehely, <em>Theory of Orbits: The Restricted Problem of Three Bodies</em>,
+        Academic Press (1967).</li>
+  </ol>
+  <p>Le code de la simulation est lisible directement dans
+     <a href="../js/arenstorf.js">arenstorf.js</a>.</p>
+</article>
+</main>
+
+<footer class="site-footer">
+  <div class="wrap"><a href="../index.html">← Tous les projets</a></div>
+</footer>
+
+</body>
+</html>

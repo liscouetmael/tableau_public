@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Carnet scientifique — Maël</title>
+  <meta name="description" content="Mes petits projets scientifiques : mécanique céleste, simulation numérique, apprentissage automatique.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=JetBrains+Mono&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<header class="site-header">
+  <div class="wrap">
+    <a class="site-title" href="index.html">Maël <span>· carnet scientifique</span></a>
+    <nav class="site-nav">
+      <a href="index.html" aria-current="page">Projets</a>
+      <a href="a-propos.html">À propos</a>
+    </nav>
+  </div>
+</header>
+
+<main class="wrap">
+  <section class="intro">
+    <h1>Bonjour 👋</h1>
+    <p>Ici je publie les petits projets scientifiques que je mène pendant mes études ou par curiosité :
+       de la mécanique céleste, de la simulation numérique, de l'apprentissage automatique…
+       Chaque article explique la physique ou les maths derrière, montre les résultats,
+       et discute de ce à quoi ça sert vraiment.</p>
+  </section>
+
+  <p class="section-label">Projets</p>
+
+  <!-- Pour ajouter un projet : copier un <li> ci-dessous, en haut de la liste (le plus récent d'abord). -->
+  <ul class="post-list">
+    <li>
+      <div class="date">Octobre 2026</div>
+      <h2><a href="projets/reseau-neurones.html">Un réseau de neurones écrit à la main</a></h2>
+      <p>Perceptron multicouche, rétropropagation du gradient et optimiseur Adam, sans aucune bibliothèque.
+         Une démo qui apprend sous vos yeux à séparer des spirales.</p>
+      <ul class="tags"><li>apprentissage automatique</li><li>optimisation</li><li>JavaScript</li></ul>
+    </li>
+    <li>
+      <div class="date">Septembre 2026</div>
+      <h2><a href="projets/orbite-arenstorf.html">L'orbite d'Arenstorf et le problème à trois corps restreint</a></h2>
+      <p>Une orbite périodique Terre–Lune trouvée pour la NASA en 1963, et pourquoi elle est un
+         test redoutable pour les méthodes d'intégration numérique.</p>
+      <ul class="tags"><li>mécanique céleste</li><li>EDO</li><li>Runge-Kutta</li></ul>
+    </li>
+  </ul>
+</main>
+
+<footer class="site-footer">
+  <div class="wrap">
+    © 2026 Maël · Fait à la main, en HTML et CSS.
+  </div>
+</footer>
+
+</body>
+</html>

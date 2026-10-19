@@ -1,0 +1,199 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Un réseau de neurones écrit à la main — Carnet scientifique</title>
+  <meta name="description" content="Perceptron multicouche, rétropropagation et Adam, codés sans bibliothèque, avec une démo interactive.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=JetBrains+Mono&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+  <link rel="stylesheet" href="../css/style.css">
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
+  <script defer src="../js/main.js"></script>
+  <script defer src="../js/reseau.js"></script>
+  <style>
+    #fig-reseau { aspect-ratio: 1 / 1; max-width: 480px; margin: 0 auto; }
+    #fig-perte { aspect-ratio: 3 / 1; }
+  </style>
+</head>
+<body>
+
+<header class="site-header">
+  <div class="wrap">
+    <a class="site-title" href="../index.html">Maël <span>· carnet scientifique</span></a>
+    <nav class="site-nav">
+      <a href="../index.html">Projets</a>
+      <a href="../a-propos.html">À propos</a>
+    </nav>
+  </div>
+</header>
+
+<main class="wrap">
+<article>
+  <header class="post-header">
+    <h1>Un réseau de neurones écrit à la main</h1>
+    <p class="lede">Pas de PyTorch, pas de TensorFlow : quelques dizaines de lignes de code
+       pour comprendre ce qui se passe vraiment quand un réseau « apprend ».</p>
+    <div class="post-meta">
+      <span>Octobre 2026</span>
+      <span>·</span>
+      <span>Projet personnel</span>
+      <span>·</span>
+      <span class="tag">apprentissage automatique</span>
+      <span class="tag">optimisation</span>
+    </div>
+  </header>
+
+  <div class="abstract">
+    <strong>En bref</strong><br>
+    Un réseau de neurones est une fonction paramétrée qu'on ajuste en descendant le gradient
+    d'une fonction de coût. J'ai implémenté un perceptron à deux couches cachées, la
+    rétropropagation du gradient et l'optimiseur Adam, puis je l'ai entraîné à classer des
+    points du plan. La démo ci-dessous tourne directement dans votre navigateur.
+  </div>
+
+  <nav class="toc">
+    <strong>Sommaire</strong>
+    <ol>
+      <li><a href="#neurone">Le neurone formel</a></li>
+      <li><a href="#reseau">Empiler les neurones</a></li>
+      <li><a href="#cout">Mesurer l'erreur</a></li>
+      <li><a href="#retro">La rétropropagation</a></li>
+      <li><a href="#demo">Démo</a></li>
+      <li><a href="#applications">Intérêt et applications</a></li>
+      <li><a href="#references">Références</a></li>
+    </ol>
+  </nav>
+
+  <h2 id="neurone">1. Le neurone formel</h2>
+  <p>Un neurone artificiel reçoit un vecteur d'entrées \(x\), en fait une combinaison linéaire
+     avec des <em>poids</em> \(w\) et un <em>biais</em> \(b\), puis applique une fonction non
+     linéaire \(\sigma\) appelée fonction d'activation :</p>
+  $$ a = \sigma\!\left(w^\top x + b\right). $$
+  <p>Seul, un neurone ne sait tracer qu'une frontière droite dans le plan. C'est la limite
+     célèbre du perceptron : il ne peut pas résoudre le problème du « ou exclusif » (XOR).</p>
+
+  <h2 id="reseau">2. Empiler les neurones</h2>
+  <p>On organise les neurones en couches. La sortie d'une couche devient l'entrée de la suivante :</p>
+  $$ a^{(l)} = \sigma\!\left(W^{(l)} a^{(l-1)} + b^{(l)}\right), \qquad a^{(0)} = x . $$
+  <p>Ici j'utilise \(\tanh\) dans les couches cachées et la sigmoïde
+     \(\sigma(z) = 1/(1+e^{-z})\) en sortie, pour obtenir une probabilité entre 0 et 1.
+     Grâce à la non-linéarité, la composition de ces couches peut représenter des frontières
+     arbitrairement complexes. C'est le <strong>théorème d'approximation universelle</strong>
+     (Cybenko, 1989) : avec assez de neurones, un réseau à une couche cachée approche
+     n'importe quelle fonction continue sur un compact.</p>
+
+  <h2 id="cout">3. Mesurer l'erreur</h2>
+  <p>Pour une classification en deux classes (\(y \in \{0, 1\}\)), on utilise l'entropie
+     croisée binaire entre la prédiction \(\hat y\) et la vraie étiquette :</p>
+  $$ \mathcal L = -\frac 1N \sum_{k=1}^N \Big[ y_k \log \hat y_k + (1-y_k) \log (1-\hat y_k) \Big]. $$
+  <p>Apprendre, c'est chercher les poids qui minimisent \(\mathcal L\). On le fait par
+     descente de gradient : on déplace chaque paramètre \(\theta\) dans la direction opposée
+     au gradient, \(\theta \leftarrow \theta - \eta\, \partial \mathcal L / \partial \theta\).</p>
+
+  <h2 id="retro">4. La rétropropagation</h2>
+  <p>Tout le problème est de calculer efficacement ces gradients pour des milliers de poids.
+     La <strong>rétropropagation</strong> n'est rien d'autre que la règle de dérivation des
+     fonctions composées, appliquée de la sortie vers l'entrée. On définit l'erreur de chaque
+     couche \(\delta^{(l)} = \partial \mathcal L / \partial z^{(l)}\). Avec une sortie
+     sigmoïde et l'entropie croisée, l'erreur de sortie se simplifie remarquablement :</p>
+  $$ \delta^{(L)} = \hat y - y . $$
+  <p>Puis on remonte couche par couche :</p>
+  $$ \delta^{(l)} = \left( W^{(l+1)\top} \delta^{(l+1)} \right) \odot \sigma'\!\left(z^{(l)}\right),
+     \qquad
+     \frac{\partial \mathcal L}{\partial W^{(l)}} = \delta^{(l)} \, a^{(l-1)\top},
+     \qquad
+     \frac{\partial \mathcal L}{\partial b^{(l)}} = \delta^{(l)} . $$
+  <p>Pour \(\tanh\), la dérivée s'écrit simplement \(\sigma'(z) = 1 - a^2\). Un seul passage
+     arrière donne donc tous les gradients, pour un coût comparable à celui du passage avant.</p>
+
+  <h3>L'optimiseur Adam</h3>
+  <p>La descente de gradient simple est lente sur ce genre de problème. J'utilise
+     <strong>Adam</strong> (Kingma &amp; Ba, 2014), qui garde une moyenne glissante du gradient
+     (une sorte d'inertie) et de son carré (pour adapter le pas à chaque paramètre). Le gradient
+     est estimé sur des <em>mini-lots</em> de 32 points tirés au hasard, ce qui rend
+     l'apprentissage plus rapide et un peu bruité.</p>
+
+  <h2 id="demo">5. Démo</h2>
+  <p>Choisissez un jeu de données et lancez l'entraînement. Le fond coloré montre la classe
+     prédite par le réseau en chaque point du plan : plus la couleur est franche, plus le réseau
+     est sûr de lui.</p>
+
+  <figure>
+    <canvas id="fig-reseau" aria-label="Frontière de décision apprise par le réseau"></canvas>
+    <figcaption>
+      <b>Figure 1.</b> Frontière de décision d'un réseau à deux couches cachées de
+      <span id="nn-hidden-label">12</span> neurones, entraîné en direct.
+      <span class="controls">
+        <label>Données
+          <select id="nn-data">
+            <option value="spirales">Spirales</option>
+            <option value="cercles">Cercles</option>
+            <option value="xor">XOR</option>
+          </select>
+        </label>
+        <label>Neurones par couche
+          <input type="range" id="nn-hidden" min="2" max="24" step="1" value="12">
+        </label>
+        <button class="btn" id="nn-run">Entraîner</button>
+        <button class="btn" id="nn-reset">Réinitialiser</button>
+      </span>
+      <span class="readout" id="nn-readout"></span>
+    </figcaption>
+  </figure>
+
+  <figure>
+    <canvas id="fig-perte" aria-label="Courbe de perte au cours de l'entraînement"></canvas>
+    <figcaption><b>Figure 2.</b> Évolution de la perte (échelle logarithmique) au fil des époques.</figcaption>
+  </figure>
+
+  <p>Quelques expériences intéressantes :</p>
+  <ul>
+    <li>Avec <strong>2 neurones</strong> par couche, le réseau n'arrive pas à séparer les
+        spirales : il manque de capacité.</li>
+    <li>Les <strong>cercles</strong> et le <strong>XOR</strong> sont appris en quelques
+        dizaines d'époques. Pour les spirales, la perte stagne souvent pendant plusieurs centaines
+        d'époques (le réseau hésite sur un <em>plateau</em> de la fonction de coût) avant de
+        chuter brutalement : c'est bien visible sur la figure 2.</li>
+    <li>En relançant plusieurs fois, on obtient des frontières différentes : l'initialisation
+        aléatoire mène à des minima différents de la fonction de coût.</li>
+  </ul>
+
+  <h2 id="applications">6. Intérêt et applications</h2>
+  <p>Coder un réseau à la main n'a pas pour but de remplacer les bibliothèques, mais de démystifier
+     ce qu'elles font : tout repose sur des produits matrice-vecteur, une fonction non linéaire et
+     la dérivation en chaîne. Ces mêmes ingrédients, à une échelle bien plus grande, font fonctionner :</p>
+  <ul>
+    <li><strong>La vision par ordinateur</strong> et la reconnaissance de la parole ;</li>
+    <li><strong>Les modèles de substitution en physique</strong> : un réseau entraîné sur des
+        simulations coûteuses (climat, mécanique des fluides) peut en donner une approximation
+        en une fraction de seconde ;</li>
+    <li><strong>Les réseaux informés par la physique (PINN)</strong>, qui ajoutent les équations
+        différentielles du problème dans la fonction de coût. On pourrait par exemple apprendre
+        des trajectoires du <a href="orbite-arenstorf.html">problème à trois corps</a> ;</li>
+    <li><strong>L'analyse de données scientifiques</strong> : détection d'événements au LHC,
+        classification de galaxies, repliement des protéines.</li>
+  </ul>
+
+  <h2 id="references">7. Références</h2>
+  <ol class="refs">
+    <li>D. E. Rumelhart, G. E. Hinton, R. J. Williams, <em>Learning representations by
+        back-propagating errors</em>, Nature 323 (1986).</li>
+    <li>G. Cybenko, <em>Approximation by superpositions of a sigmoidal function</em>,
+        Mathematics of Control, Signals and Systems 2 (1989).</li>
+    <li>D. P. Kingma, J. Ba, <em>Adam: A Method for Stochastic Optimization</em>, arXiv:1412.6980 (2014).</li>
+    <li>I. Goodfellow, Y. Bengio, A. Courville, <em>Deep Learning</em>, MIT Press (2016).</li>
+  </ol>
+  <p>Le code complet est dans <a href="../js/reseau.js">reseau.js</a>.</p>
+</article>
+</main>
+
+<footer class="site-footer">
+  <div class="wrap"><a href="../index.html">← Tous les projets</a></div>
+</footer>
+
+</body>
+</html>
