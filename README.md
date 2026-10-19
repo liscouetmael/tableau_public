@@ -1,4 +1,7 @@
-# Carnet scientifique
+# tableau_public
+Mon projet de site internet perso sur lequel je mets les avancées de mes projets persos
+
+## Carnet scientifique
 
 Site statique (HTML + CSS + un peu de JavaScript), sans framework ni étape de compilation.
 
@@ -36,6 +39,15 @@ puis ouvrir http://localhost:8000.
 
 ## Mettre en ligne (GitHub Pages, gratuit)
 
-1. Créer un dépôt GitHub nommé `ton-pseudo.github.io`.
-2. Y pousser le contenu de ce dossier.
-3. Le site est en ligne à `https://ton-pseudo.github.io` après une minute.
+Le dépôt est https://github.com/liscouetmael/tableau_public.
+
+1. Une seule fois : sur GitHub, *Settings → Pages → Branch : `main` / `(root)` → Save*.
+2. Après chaque modification :
+
+   ```
+   git add -A
+   git commit -m "ce que j'ai changé"
+   git push
+   ```
+
+3. Le site est en ligne à https://liscouetmael.github.io/tableau_public/ (mise à jour en une minute environ).
