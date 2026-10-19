@@ -3,8 +3,8 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Un réseau de neurones écrit à la main — Carnet scientifique</title>
-  <meta name="description" content="Perceptron multicouche, rétropropagation et Adam, codés sans bibliothèque, avec une démo interactive.">
+  <title>Réseaux dense et convolutif sur MNIST — Carnet scientifique</title>
+  <meta name="description" content="Reconnaissance de chiffres manuscrits (MNIST) avec PyTorch : un réseau dense puis un réseau convolutif, avec une démo interactive.">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=JetBrains+Mono&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap" rel="stylesheet">
@@ -14,9 +14,17 @@
   <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
   <script defer src="../js/main.js"></script>
   <script defer src="../js/reseau.js"></script>
+  <script defer src="../js/mnist-demo.js"></script>
   <style>
     #fig-reseau { aspect-ratio: 1 / 1; max-width: 480px; margin: 0 auto; }
     #fig-perte { aspect-ratio: 3 / 1; }
+    .mn-groupe { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 0.6rem 1.2rem; }
+    .mn-neurones { display: inline-flex; flex-wrap: wrap; gap: 0.3rem; }
+    #mn-archi { margin: 0.6rem 0; }
+    #mn-perte, #mn-precision { aspect-ratio: 3 / 1; margin-bottom: 0.6rem; }
+    #mn-cm { aspect-ratio: 1 / 1; max-width: 440px; margin: 0 auto; }
+    #mn-erreurs { height: 200px; }
+    @media (max-width: 560px) { #mn-perte, #mn-precision { aspect-ratio: 2 / 1; } }
   </style>
 </head>
 <body>
@@ -34,8 +42,8 @@
 <main class="wrap">
 <article>
   <header class="post-header">
-    <h1>Un réseau de neurones écrit à la main</h1>
-    <p class="lede">Pas de PyTorch, pas de TensorFlow : quelques dizaines de lignes de code
+    <h1>Réseaux dense et convolutif sur MNIST</h1>
+    <p class="lede">Un peu de PyTorch, et des animations de quelques dizaines de lignes de code
        pour comprendre ce qui se passe vraiment quand un réseau « apprend ».</p>
     <div class="post-meta">
       <span>Octobre 2026</span>
@@ -49,83 +57,568 @@
 
   <div class="abstract">
     <strong>En bref</strong><br>
-    Un réseau de neurones est une fonction paramétrée qu'on ajuste en descendant le gradient
-    d'une fonction de coût. J'ai implémenté un perceptron à deux couches cachées, la
-    rétropropagation du gradient et l'optimiseur Adam, puis je l'ai entraîné à classer des
-    points du plan. La démo ci-dessous tourne directement dans votre navigateur.
+    Un réseau de neurones s'inspire, de loin, du cerveau. Il est composé de neurones (de quelques
+    dizaines pour les plus petits à plusieurs millions pour les plus gros) reliés entre eux, qui
+    s'activent plus ou moins en fonction du signal qu'ils reçoivent. Comme un cerveau, il doit
+    apprendre : avant de savoir reconnaître un chat, une maison ou un chiffre écrit à la main, un
+    enfant doit construire dans son cerveau les connexions neuronales qui lui permettent d'identifier
+    et de classer ce qu'il voit. Les neurosciences montrent que la répétition renforce les connexions
+    entre les neurones sollicités ensemble : elles transmettent ensuite le signal plus facilement, avec
+    moins d'effort. C'est pour cela qu'on récite une poésie à voix haute plusieurs fois pour la retenir.
+    Un réseau de neurones artificiel repose sur une idée voisine, même si son fonctionnement est bien
+    plus simple que celui d'un vrai cerveau. Le but est qu'à partir d'un signal d'entrée (par exemple
+    la photo d'un chat), le passage à travers les neurones donne une sortie cohérente. Pour un chat,
+    cette sortie peut prendre plusieurs formes : estimer son poids en kilos (une <em>régression</em>,
+    car la réponse est un nombre), ou dire s'il est noir ou non, ou à quelle espèce il appartient (une
+    <em>classification</em>, car la réponse est une catégorie). Plus concrètement, un réseau de
+    neurones est une fonction paramétrée
+    $$ Y_{\text{sortie}} = F_{\theta}\left(X_{\text{entrée}}\right) $$
+    où \(\theta\) représente l'ensemble des paramètres du modèle, c'est-à-dire les poids et les biais
+    de chaque neurone. Entraîner le réseau, c'est chercher les paramètres qui minimisent une fonction
+    de coût, en descendant son gradient. Ce sont ces paramètres que l'on compte quand on parle de la
+    taille d'un modèle : Mistral annonçait en octobre 2026 environ 1 000 milliards de paramètres pour
+    son modèle Mistral Large 4.
+    Ici, avec PyTorch, j'ai entraîné deux réseaux à reconnaître les chiffres manuscrits de la base
+    MNIST (60 000 images d'entraînement de 28 × 28 pixels). Le premier, un réseau dense, atteint 93,7 % de bonnes réponses
+    sur les 10 000 images de test. Le second, un réseau convolutif (CNN) à deux couches de convolution entraîné avec Adam,
+    monte à 98,8 %. Plus bas, une démo permet d'entraîner ces deux réseaux sur MNIST directement dans
+    votre navigateur, en choisissant leur architecture.
   </div>
 
   <nav class="toc">
     <strong>Sommaire</strong>
     <ol>
       <li><a href="#neurone">Le neurone formel</a></li>
-      <li><a href="#reseau">Empiler les neurones</a></li>
-      <li><a href="#cout">Mesurer l'erreur</a></li>
-      <li><a href="#retro">La rétropropagation</a></li>
-      <li><a href="#demo">Démo</a></li>
+      <li><a href="#couches">Empiler les couches</a></li>
+      <li><a href="#relu">La fonction ReLU</a></li>
+      <li><a href="#algo">L'algorithme d'entraînement</a></li>
+      <li><a href="#perte">La fonction de perte : l'entropie croisée</a></li>
+      <li><a href="#optimiseur">L'optimiseur : la descente de gradient stochastique</a></li>
+      <li><a href="#backward">Ce que calcule <code>loss.backward()</code></a></li>
+      <li><a href="#cnn">Les réseaux convolutifs (CNN)</a></li>
+      <li><a href="#demo-mnist">Démo : entraîner un réseau sur MNIST</a></li>
+      <li><a href="#demo">Une autre démo : la frontière de décision</a></li>
       <li><a href="#applications">Intérêt et applications</a></li>
       <li><a href="#references">Références</a></li>
     </ol>
   </nav>
 
   <h2 id="neurone">1. Le neurone formel</h2>
-  <p>Un neurone artificiel reçoit un vecteur d'entrées \(x\), en fait une combinaison linéaire
-     avec des <em>poids</em> \(w\) et un <em>biais</em> \(b\), puis applique une fonction non
-     linéaire \(\sigma\) appelée fonction d'activation :</p>
-  $$ a = \sigma\!\left(w^\top x + b\right). $$
-  <p>Seul, un neurone ne sait tracer qu'une frontière droite dans le plan. C'est la limite
-     célèbre du perceptron : il ne peut pas résoudre le problème du « ou exclusif » (XOR).</p>
+  <p>Un neurone artificiel reçoit des entrées \(x_1, \dots, x_n\). Il en fait une somme pondérée
+     par des <em>poids</em> \(w_1, \dots, w_n\), ajoute un <em>biais</em> \(b\), puis applique
+     une fonction d'activation \(\varphi\) :</p>
+  $$ z = \sum_{j=1}^{n} w_j x_j + b = w^\top x + b, \qquad a = \varphi(z). $$
+  <p>Les poids disent quelle importance le neurone accorde à chaque entrée, le biais règle à
+     partir de quel niveau il s'active. Seul, un neurone ne sépare les données que par une
+     frontière droite (un hyperplan) : c'est la limite du perceptron historique, incapable
+     d'apprendre le « ou exclusif » (XOR). Pour aller plus loin, il faut assembler beaucoup de
+     neurones, organisés en couches. La seule superposition de couches reste une opération linéaire, c'est tout l'intérêt 
+     des fonctions d'activation, casser la linéarité.</p>
 
-  <h2 id="reseau">2. Empiler les neurones</h2>
-  <p>On organise les neurones en couches. La sortie d'une couche devient l'entrée de la suivante :</p>
-  $$ a^{(l)} = \sigma\!\left(W^{(l)} a^{(l-1)} + b^{(l)}\right), \qquad a^{(0)} = x . $$
-  <p>Ici j'utilise \(\tanh\) dans les couches cachées et la sigmoïde
-     \(\sigma(z) = 1/(1+e^{-z})\) en sortie, pour obtenir une probabilité entre 0 et 1.
-     Grâce à la non-linéarité, la composition de ces couches peut représenter des frontières
-     arbitrairement complexes. C'est le <strong>théorème d'approximation universelle</strong>
-     (Cybenko, 1989) : avec assez de neurones, un réseau à une couche cachée approche
-     n'importe quelle fonction continue sur un compact.</p>
+  <h2 id="couches">2. Empiler les couches</h2>
+  <p>Une <strong>couche dense</strong> regroupe \(d_l\) neurones qui reçoivent tous les mêmes
+     \(d_{l-1}\) entrées. On range les poids de tous ses neurones dans une seule matrice
+     \(W^{(l)} \in \mathbb{R}^{d_l \times d_{l-1}}\) (la ligne \(k\) contient les poids du
+     neurone \(k\)) et leurs biais dans un vecteur \(b^{(l)} \in \mathbb{R}^{d_l}\). Toute la
+     couche se calcule alors en un seul produit matrice-vecteur :</p>
+  $$ z^{(l)} = W^{(l)} a^{(l-1)} + b^{(l)}, \qquad a^{(l)} = \varphi\big(z^{(l)}\big), \qquad a^{(0)} = x . $$
+  <p>La sortie d'une couche devient l'entrée de la suivante. Mon réseau en enchaîne trois :
+     deux couches cachées de 128 puis 32 neurones, et une couche de sortie de \(C\) neurones,
+     un par classe possible.</p>
+  $$ x \in \mathbb{R}^{d_0}
+     \;\xrightarrow{\;W^{(1)},\, b^{(1)},\ \text{ReLU}\;}\; a^{(1)} \in \mathbb{R}^{128}
+     \;\xrightarrow{\;W^{(2)},\, b^{(2)},\ \text{ReLU}\;}\; a^{(2)} \in \mathbb{R}^{32}
+     \;\xrightarrow{\;W^{(3)},\, b^{(3)}\;}\; z^{(3)} \in \mathbb{R}^{C} $$
+  <p>Les \(C\) valeurs de sortie \(z^{(3)}\) s'appellent les <em>logits</em> : ce sont des
+     scores bruts, un par classe, que la fonction de perte transformera en probabilités. La
+     couche de sortie n'a donc pas de fonction d'activation. Le réseau entier est une
+     composition de fonctions :</p>
+  $$ F_\theta(x) = W^{(3)}\, \varphi\Big( W^{(2)}\, \varphi\big( W^{(1)} x + b^{(1)} \big) + b^{(2)} \Big) + b^{(3)},
+     \qquad \theta = \big\{ W^{(1)}, b^{(1)}, W^{(2)}, b^{(2)}, W^{(3)}, b^{(3)} \big\}. $$
+  <p>En PyTorch, cette architecture tient en quelques lignes :</p>
+<pre><code>class ReseauBasique(nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.flatten = nn.Flatten()
+        self.linear_relu = nn.Sequential(
+            nn.Linear(784, 128), nn.ReLU(),
+            nn.Linear(128, 32),  nn.ReLU(),
+            nn.Linear(32, 10)
+        )
 
-  <h2 id="cout">3. Mesurer l'erreur</h2>
-  <p>Pour une classification en deux classes (\(y \in \{0, 1\}\)), on utilise l'entropie
-     croisée binaire entre la prédiction \(\hat y\) et la vraie étiquette :</p>
-  $$ \mathcal L = -\frac 1N \sum_{k=1}^N \Big[ y_k \log \hat y_k + (1-y_k) \log (1-\hat y_k) \Big]. $$
-  <p>Apprendre, c'est chercher les poids qui minimisent \(\mathcal L\). On le fait par
-     descente de gradient : on déplace chaque paramètre \(\theta\) dans la direction opposée
-     au gradient, \(\theta \leftarrow \theta - \eta\, \partial \mathcal L / \partial \theta\).</p>
+    def forward(self, x):
+        return self.linear_relu(self.flatten(x))</code></pre>
+  <p>Pourquoi empiler des couches ? Chaque couche transforme les données dans un nouvel
+     espace où le problème devient plus simple pour la couche suivante. Avec assez de neurones,
+     un réseau à une seule couche cachée peut déjà approcher n'importe quelle fonction continue
+     sur un compact : c'est le <strong>théorème d'approximation universelle</strong>, démontré
+     par Cybenko en 1989 pour la sigmoïde, puis étendu à toute activation non polynomiale, dont
+     ReLU (Leshno et al., 1993). En pratique, plusieurs couches de taille raisonnable apprennent
+     souvent mieux qu'une seule couche immense.</p>
 
-  <h2 id="retro">4. La rétropropagation</h2>
-  <p>Tout le problème est de calculer efficacement ces gradients pour des milliers de poids.
-     La <strong>rétropropagation</strong> n'est rien d'autre que la règle de dérivation des
-     fonctions composées, appliquée de la sortie vers l'entrée. On définit l'erreur de chaque
-     couche \(\delta^{(l)} = \partial \mathcal L / \partial z^{(l)}\). Avec une sortie
-     sigmoïde et l'entropie croisée, l'erreur de sortie se simplifie remarquablement :</p>
-  $$ \delta^{(L)} = \hat y - y . $$
-  <p>Puis on remonte couche par couche :</p>
-  $$ \delta^{(l)} = \left( W^{(l+1)\top} \delta^{(l+1)} \right) \odot \sigma'\!\left(z^{(l)}\right),
+  <h2 id="relu">3. La fonction ReLU</h2>
+  <p>La fonction d'activation de mon réseau est <strong>ReLU</strong>
+     (<em>Rectified Linear Unit</em>) :</p>
+  $$ \operatorname{ReLU}(z) = \max(0, z) = \begin{cases} z & \text{si } z > 0 \\ 0 & \text{sinon} \end{cases},
      \qquad
-     \frac{\partial \mathcal L}{\partial W^{(l)}} = \delta^{(l)} \, a^{(l-1)\top},
-     \qquad
-     \frac{\partial \mathcal L}{\partial b^{(l)}} = \delta^{(l)} . $$
-  <p>Pour \(\tanh\), la dérivée s'écrit simplement \(\sigma'(z) = 1 - a^2\). Un seul passage
-     arrière donne donc tous les gradients, pour un coût comparable à celui du passage avant.</p>
+     \operatorname{ReLU}'(z) = \begin{cases} 1 & \text{si } z > 0 \\ 0 & \text{sinon.} \end{cases} $$
+  <p>Elle laisse passer les signaux positifs tels quels et coupe les signaux négatifs. Sur un
+     vecteur ou une matrice, elle s'applique coefficient par coefficient.</p>
+  <p>Elle est indispensable. Sans elle, la composition de couches linéaires resterait
+     linéaire :
+     \(W^{(2)}\big(W^{(1)}x + b^{(1)}\big) + b^{(2)} = \big(W^{(2)}W^{(1)}\big)\,x + \big(W^{(2)}b^{(1)} + b^{(2)}\big)\),
+     et trois couches ne feraient pas mieux qu'une. Son « coude » en zéro suffit à briser la
+     linéarité : en combinant beaucoup de neurones ReLU, le réseau construit des fonctions
+     affines par morceaux, capables d'approcher des frontières très compliquées.</p>
+  <p>Pourquoi ReLU plutôt que la sigmoïde ou \(\tanh\), utilisées historiquement ? D'abord,
+     elle se calcule et se dérive presque gratuitement. Surtout, sa dérivée vaut exactement 1
+     pour tout signal positif, alors que celle de la sigmoïde ne dépasse jamais \(1/4\). Comme
+     la rétropropagation multiplie ces dérivées couche après couche, les gradients d'un réseau
+     à sigmoïdes ont tendance à s'écraser vers 0 : c'est l'<em>évanouissement du gradient</em>
+     (<em>vanishing gradient</em>), que ReLU atténue fortement. Son défaut : un neurone dont le
+     \(z\) est négatif pour toutes les entrées a un gradient nul et cesse d'apprendre (on parle
+     de neurone « mort »). En \(z = 0\), la dérivée n'est pas définie ; PyTorch prend 0 par
+     convention.</p>
 
-  <h3>L'optimiseur Adam</h3>
-  <p>La descente de gradient simple est lente sur ce genre de problème. J'utilise
-     <strong>Adam</strong> (Kingma &amp; Ba, 2014), qui garde une moyenne glissante du gradient
-     (une sorte d'inertie) et de son carré (pour adapter le pas à chaque paramètre). Le gradient
-     est estimé sur des <em>mini-lots</em> de 32 points tirés au hasard, ce qui rend
-     l'apprentissage plus rapide et un peu bruité.</p>
+  <h2 id="algo">4. L'algorithme d'entraînement</h2>
+  <p>Entraîner le réseau, c'est ajuster \(\theta\) pour que \(F_\theta(x)\) désigne la bonne
+     classe sur des exemples dont on connaît la réponse. Voici l'algorithme complet, avec en
+     regard la ligne PyTorch correspondante :</p>
+<pre><code>Données : exemples étiquetés (x, c), taille de lot N = 64,
+          taux d'apprentissage η = 0,01, nombre d'époques E = 10
 
-  <h2 id="demo">5. Démo</h2>
-  <p>Choisissez un jeu de données et lancez l'entraînement. Le fond coloré montre la classe
-     prédite par le réseau en chaque point du plan : plus la couleur est franche, plus le réseau
-     est sûr de lui.</p>
+initialiser chaque W et b au hasard               # fait par nn.Linear
+
+répéter E fois :                                  # une époque
+    mélanger les exemples, les découper en lots   # DataLoader(..., shuffle=True)
+    pour chaque lot (X, c) :
+        Z ← F_θ(X)                                # outputs = modele(inputs)
+        J ← EntropieCroisée(Z, c)                 # perte = loss_fn(outputs, targets)
+        remettre les gradients à zéro             # optimizer.zero_grad()
+        calculer ∂J/∂θ pour chaque paramètre      # perte.backward()
+        θ ← θ − η · ∂J/∂θ                         # optimizer.step()</code></pre>
+  <p>Une <em>époque</em> est un passage complet sur tous les exemples d'entraînement. Par
+     défaut, <code>nn.Linear</code> tire ses poids et ses biais uniformément dans
+     \(\big[-1/\sqrt{d_{l-1}},\, 1/\sqrt{d_{l-1}}\big]\). Le hasard est nécessaire : si tous les
+     poids partaient de la même valeur, tous les neurones d'une couche calculeraient la même
+     chose, recevraient le même gradient et resteraient identiques pour toujours. Les trois
+     sections suivantes détaillent la perte, la mise à jour des paramètres et le calcul des
+     gradients.</p>
+
+  <h2 id="perte">5. La fonction de perte : l'entropie croisée</h2>
+  <p>La perte (ou fonction de coût) mesure à quel point les prédictions du réseau sont
+     mauvaises. J'utilise l'<strong>entropie croisée</strong> (<code>nn.CrossEntropyLoss</code>),
+     la perte standard de la classification à plusieurs classes.</p>
+  <p class="note"><strong>Notations.</strong> Pour <em>un</em> exemple, on manipule trois
+     vecteurs de \(\mathbb{R}^C\), dont l'indice \(i = 1, \dots, C\) désigne toujours une
+     classe :
+     les <strong>logits</strong> \(z\), sortie brute du réseau ;
+     les <strong>probabilités prédites</strong> \(\hat y\), calculées à partir de \(z\) ;
+     la <strong>vraie réponse</strong> \(y\), connue d'avance. On note \(c\) le numéro de la
+     vraie classe. Quand il faut distinguer les \(N\) exemples d'un lot, on l'indique en
+     exposant entre crochets : \(z^{[n]}\), \(\hat y^{[n]}\), \(y^{[n]}\), \(c^{[n]}\)
+     (les parenthèses \({}^{(l)}\) restent réservées aux couches).</p>
+
+  <p><strong>Étape 1 : des logits aux probabilités.</strong> La fonction <em>softmax</em>
+     transforme les logits \(z\) en probabilités \(\hat y\) :</p>
+  $$ \hat y_i = \operatorname{softmax}(z)_i = \frac{e^{z_i}}{\sum_{j=1}^{C} e^{z_j}}, \qquad i = 1, \dots, C. $$
+  <p>Les \(\hat y_i\) sont positifs et leur somme vaut 1 : \(\hat y_i\) est la probabilité que le
+     réseau attribue à la classe \(i\). L'exponentielle accentue les écarts, si bien que le plus
+     grand logit récupère l'essentiel de la probabilité.</p>
+
+  <p><strong>Étape 2 : comparer à la vraie réponse.</strong> La vraie réponse est codée par un
+     vecteur <em>one-hot</em> : \(y_c = 1\) et \(y_i = 0\) pour \(i \neq c\). L'entropie croisée
+     entre la vraie distribution \(y\) et la distribution prédite \(\hat y\) vaut :</p>
+  $$ \ell(\hat y, y) = -\sum_{i=1}^{C} y_i \log \hat y_i = -\log \hat y_c . $$
+  <p>La somme se réduit à un seul terme, puisque seul \(y_c\) est non nul : seule compte la
+     probabilité donnée à la bonne classe. Si le réseau a raison avec assurance
+     (\(\hat y_c \to 1\)), la perte tend vers 0 ; s'il se trompe avec assurance
+     (\(\hat y_c \to 0\)), elle tend vers l'infini. En remplaçant \(\hat y_c\) par sa
+     définition, on obtient la perte directement en fonction des logits, ce qui servira pour la
+     dérivée :</p>
+  $$ \ell = -\log \frac{e^{z_c}}{\sum_{j} e^{z_j}} = -z_c + \log \sum_{j=1}^{C} e^{z_j} . $$
+  <p>Sur un lot de \(N\) exemples, la perte totale est la moyenne :</p>
+  $$ J(\theta) = \frac{1}{N} \sum_{n=1}^{N} \ell\big(\hat y^{[n]}, y^{[n]}\big) = -\frac{1}{N} \sum_{n=1}^{N} \log \hat y^{[n]}_{c^{[n]}} . $$
+  <p class="note"><strong>Piège PyTorch :</strong> <code>nn.CrossEntropyLoss</code> applique
+     elle-même le softmax. Il faut donc lui donner les logits \(z\) bruts, et c'est pour cela que
+     mon réseau ne se termine pas par un softmax.</p>
+
+  <h3>Pourquoi cette perte ?</h3>
+  <p><strong>1. C'est le maximum de vraisemblance.</strong> Le principe du maximum de
+     vraisemblance est la méthode d'estimation la plus classique en statistiques. On dispose
+     d'observations \(x^{[1]}, \dots, x^{[N]}\) et d'un modèle qui leur attribue une probabilité
+     \(p_\theta\) dépendant de paramètres \(\theta\). On choisit les paramètres qui rendent les
+     observations <em>les plus probables</em> :</p>
+  $$ \hat\theta = \arg\max_\theta \prod_{n=1}^{N} p_\theta\big(x^{[n]}\big)
+     = \arg\min_\theta \left( -\sum_{n=1}^{N} \log p_\theta\big(x^{[n]}\big) \right) . $$
+  <p>Le logarithme transforme le produit en somme sans changer l'endroit de l'optimum, puisqu'il
+     est croissant. Quelques exemples classiques, où ce principe redonne des estimateurs bien
+     connus :</p>
+  <ul>
+    <li><strong>Pile ou face</strong> (loi de Bernoulli de paramètre \(p\)) : sur \(N\) lancers
+        avec \(k\) « pile », l'estimateur du maximum de vraisemblance est la fréquence observée,
+        \(\hat p = k/N\).</li>
+    <li><strong>Mesures avec un bruit gaussien</strong> (loi normale
+        \(\mathcal{N}(\mu, \sigma^2)\)) : on obtient la moyenne empirique
+        \(\hat\mu = \frac{1}{N}\sum_n x^{[n]}\) et la variance
+        \(\hat\sigma^2 = \frac{1}{N}\sum_n \big(x^{[n]} - \hat\mu\big)^2\). Cette variance est
+        légèrement biaisée, d'où le \(\frac{1}{N-1}\) qu'on rencontre souvent à la place.</li>
+    <li><strong>Comptages</strong> (loi de Poisson de paramètre \(\lambda\)), par exemple le
+        nombre de désintégrations radioactives par seconde : \(\hat\lambda\) est le nombre moyen
+        observé.</li>
+    <li><strong>Régression linéaire</strong> : si l'on suppose que les points s'écartent de la
+        droite par un bruit gaussien, maximiser la vraisemblance revient exactement à minimiser
+        la somme des carrés des écarts. La méthode des <em>moindres carrés</em> est donc un
+        maximum de vraisemblance.</li>
+    <li><strong>Régression logistique</strong> (classification en deux classes) : maximiser la
+        vraisemblance donne l'entropie croisée binaire. C'est exactement un réseau réduit à un
+        seul neurone à sortie sigmoïde.</li>
+  </ul>
+  <p>Notre cas est celui d'une loi catégorielle à \(C\) issues : le réseau affirme que l'exemple
+     \(n\) appartient à la classe \(i\) avec la probabilité \(\hat y^{[n]}_i\). La vraisemblance
+     des bonnes réponses est \(\prod_n \hat y^{[n]}_{c^{[n]}}\), et son opposé du logarithme,
+     divisé par \(N\), est exactement \(J(\theta)\). <strong>Minimiser l'entropie croisée, c'est
+     maximiser la vraisemblance.</strong> Les deux exemples de régression ci-dessus montrent au
+     passage que le choix de la perte revient à choisir un modèle de bruit : l'erreur
+     quadratique correspond à un bruit gaussien sur une valeur réelle, l'entropie croisée à un
+     tirage parmi des catégories.</p>
+
+  <p><strong>2. Son gradient est remarquablement simple.</strong> On dérive
+     \(\ell = -z_c + \log \sum_j e^{z_j}\) par rapport au logit \(z_i\). Le premier terme donne
+     \(-1\) si \(i = c\) et 0 sinon, c'est-à-dire \(-y_i\). Le second donne
+     \(e^{z_i} / \sum_j e^{z_j} = \hat y_i\). Au total :</p>
+  $$ \frac{\partial \ell}{\partial z_i} = \hat y_i - y_i, \qquad \text{soit} \qquad \frac{\partial \ell}{\partial z} = \hat y - y . $$
+  <p>Le gradient par rapport aux logits est l'écart entre la prédiction et la vérité : grand
+     quand le réseau se trompe beaucoup, petit quand il a presque raison.</p>
+
+  <p><strong>3. Elle corrige vite les grosses erreurs.</strong> Avec l'erreur quadratique
+     \(\sum_i (\hat y_i - y_i)^2\), le gradient par rapport à \(z\) serait \(\hat y - y\)
+     multiplié par la dérivée du softmax, qui devient minuscule quand le réseau est très sûr de
+     lui. Un réseau sûr de lui et qui se trompe apprendrait alors très lentement. L'entropie
+     croisée n'a pas ce défaut.</p>
+
+  <h2 id="optimiseur">6. L'optimiseur : la descente de gradient stochastique</h2>
+  <p>Une fois le gradient \(\nabla_\theta J\) connu, l'optimiseur décide comment modifier les
+     paramètres. J'utilise la <strong>descente de gradient stochastique</strong>
+     (<em>SGD</em>, <code>torch.optim.SGD</code>), la plus simple de toutes.</p>
+  <p>Le gradient indique la direction dans laquelle la perte augmente le plus vite. On fait
+     donc un petit pas dans la direction opposée, pour chaque matrice de poids et chaque
+     vecteur de biais :</p>
+  $$ W^{(l)} \leftarrow W^{(l)} - \eta\, \frac{\partial J}{\partial W^{(l)}}, \qquad
+     b^{(l)} \leftarrow b^{(l)} - \eta\, \frac{\partial J}{\partial b^{(l)}} . $$
+  <p>Le <strong>taux d'apprentissage</strong> \(\eta\) (ici \(\eta = 0{,}01\)) règle la taille
+     du pas. Trop petit, l'apprentissage n'en finit pas ; trop grand, on saute par-dessus le
+     minimum et la perte peut même diverger.</p>
+  <p>Pourquoi « stochastique » ? La vraie fonction à minimiser est la perte moyenne sur
+     <em>tous</em> les exemples d'entraînement. Calculer son gradient exact à chaque pas
+     demanderait de les parcourir tous, ce qui coûte très cher. On l'estime plutôt sur un
+     <em>mini-lot</em> de \(N = 64\) exemples tirés au hasard. Cette estimation est bruitée,
+     mais elle est juste en moyenne, et elle permet de faire beaucoup plus de pas pour le même
+     temps de calcul. Le bruit aide même parfois à sortir des zones plates de la fonction de
+     coût.</p>
+  <p>Ce pas \(\theta \leftarrow \theta - \eta\, \nabla_\theta J\) est exactement ce que fait
+     <code>optimizer.step()</code> : il lit le gradient de chaque paramètre dans son attribut
+     <code>.grad</code>, rempli juste avant par <code>loss.backward()</code>.</p>
+
+  <h2 id="backward">7. Ce que calcule <code>loss.backward()</code></h2>
+  <p>Pendant le passage avant, PyTorch garde en mémoire toutes les opérations effectuées
+     (produits matriciels, ajouts de biais, ReLU, entropie croisée) et leurs résultats
+     intermédiaires. <code>loss.backward()</code> parcourt ensuite ces opérations
+     <strong>à l'envers</strong>, de la perte jusqu'à l'entrée. À chaque étape, il applique la
+     règle de dérivation des fonctions composées pour calculer le gradient de la perte par
+     rapport à chaque poids et à chaque biais. C'est la <strong>rétropropagation</strong>
+     (<em>backpropagation</em>).</p>
+  <p>Les gradients sont rangés dans l'attribut <code>.grad</code> de chaque paramètre, où
+     <code>optimizer.step()</code> vient les lire. Attention, <code>backward()</code>
+     <em>ajoute</em> le nouveau gradient à l'ancien au lieu de le remplacer : c'est pour cela
+     qu'on appelle <code>optimizer.zero_grad()</code> avant.</p>
+
+  <h3>Le même entraînement, sans <code>loss.backward()</code></h3>
+  <p>Pour voir qu'il n'y a rien de magique, voici le même réseau entraîné en calculant les
+     gradients à la main. On n'utilise plus ni <code>nn.Linear</code>, ni
+     <code>loss.backward()</code>, ni l'optimiseur : seulement des produits de matrices.
+     Les exemples du lot sont rangés en lignes : <code>A0</code> a une ligne par exemple.</p>
+<pre><code>import torch
+
+def initialiser(d_out, d_in):
+    # même initialisation que nn.Linear : uniforme sur [-1/√d_in, 1/√d_in]
+    borne = 1 / d_in**0.5
+    W = (2 * torch.rand(d_out, d_in) - 1) * borne
+    b = (2 * torch.rand(d_out) - 1) * borne
+    return W, b
+
+W1, b1 = initialiser(128, 784)
+W2, b2 = initialiser(32, 128)
+W3, b3 = initialiser(10, 32)
+lr = 0.01
+
+for epoque in range(10):
+    for inputs, targets in train_dataloader:
+        N = inputs.shape[0]
+
+        # ---- Passage avant (on garde les résultats intermédiaires) ----
+        A0 = inputs.reshape(N, -1)          # (N, 784) : on aplatit les images
+        Z1 = A0 @ W1.T + b1                 # (N, 128)
+        A1 = torch.relu(Z1)
+        Z2 = A1 @ W2.T + b2                 # (N, 32)
+        A2 = torch.relu(Z2)
+        Z3 = A2 @ W3.T + b3                 # (N, 10) : les logits
+        Y_chapeau = torch.softmax(Z3, dim=1)
+        Y = torch.nn.functional.one_hot(targets, 10).float()
+        perte = -torch.log(Y_chapeau[torch.arange(N), targets]).mean()
+
+        # ---- Passage arrière : ce que fait perte.backward() ----
+        D3 = (Y_chapeau - Y) / N            # dérivée de la perte par rapport à Z3
+        gW3 = D3.T @ A2                     # gradient de W3, même forme que W3
+        gb3 = D3.sum(dim=0)                 # gradient de b3
+        D2 = (D3 @ W3) * (Z2 > 0).float()   # on remonte à travers W3 puis ReLU
+        gW2 = D2.T @ A1
+        gb2 = D2.sum(dim=0)
+        D1 = (D2 @ W2) * (Z1 > 0).float()   # on remonte à travers W2 puis ReLU
+        gW1 = D1.T @ A0
+        gb1 = D1.sum(dim=0)
+
+        # ---- Mise à jour : ce que fait optimizer.step() ----
+        W1 -= lr * gW1;  b1 -= lr * gb1
+        W2 -= lr * gW2;  b2 -= lr * gb2
+        W3 -= lr * gW3;  b3 -= lr * gb3
+
+    print(f"Époque {epoque + 1} - perte du dernier lot : {perte.item():.4f}")</code></pre>
+  <p>Le passage arrière se lit de bas en haut du réseau, et il répète toujours les trois mêmes
+     gestes :</p>
+  <ul>
+    <li><strong>Au départ</strong>, l'erreur sur les logits vaut
+        \(\frac{1}{N}(\hat Y - Y)\), l'écart entre prédiction et vérité vu à la section 5.</li>
+    <li><strong>Pour chaque couche linéaire</strong>, on en déduit le gradient des poids
+        (<code>D.T @ A</code>) et des biais (<code>D.sum(dim=0)</code>). On renvoie aussi
+        l'erreur vers la couche précédente (<code>D @ W</code>).</li>
+    <li><strong>Pour chaque ReLU</strong>, on laisse passer l'erreur là où le neurone était
+        actif (<code>Z &gt; 0</code>) et on la met à zéro ailleurs.</li>
+  </ul>
+  <p>Ces lignes donnent exactement les mêmes gradients que <code>loss.backward()</code>. La
+     différence, c'est que PyTorch les écrit automatiquement pour n'importe quel réseau, alors
+     qu'ici il faudrait tout réécrire à chaque changement d'architecture.</p>
+
+  <h2 id="cnn">8. Les réseaux convolutifs (CNN)</h2>
+
+  <h3>Le défaut des couches denses face aux images</h3>
+  <p>Un réseau dense commence par aplatir l'image en une longue liste de pixels. Il perd alors
+     la notion de voisinage : pour lui, deux pixels côte à côte ne sont pas plus liés que deux
+     pixels aux deux bouts de l'image. Et un chiffre décalé de quelques pixels devient une entrée
+     complètement différente, qu'il doit réapprendre. Un <strong>réseau convolutif</strong>
+     (<em>Convolutional Neural Network</em>, CNN) garde au contraire l'image en deux dimensions
+     et la parcourt avec de petits filtres.</p>
+
+  <h3>La convolution</h3>
+  <p>Un <strong>filtre</strong> (ou noyau) est une petite grille de poids \(K\), de taille
+     \(3 \times 3\) dans mon réseau. On le fait glisser sur toute l'image. À chaque position
+     \((i, j)\), on multiplie chaque poids du filtre par le pixel qu'il recouvre, on additionne
+     le tout et on ajoute un biais \(b\) :</p>
+  $$ S(i, j) = \sum_{u=0}^{2} \sum_{v=0}^{2} X(i + u,\, j + v)\, K(u, v) + b . $$
+  <p>Le résultat \(S\) est une nouvelle image, appelée <strong>carte de caractéristiques</strong>,
+     qui prend de grandes valeurs là où l'image ressemble au motif du filtre. Les poids du filtre
+     ne sont pas choisis à la main : ils sont appris par rétropropagation, exactement comme ceux
+     d'une couche dense. Chaque filtre se spécialise ainsi dans un motif : un trait vertical, un
+     bord oblique, une courbe. Une couche contient plusieurs filtres (16 dans ma première couche),
+     donc produit plusieurs cartes. La couche suivante combine ces cartes pour reconnaître des
+     motifs plus complexes, comme une boucle ou un croisement de traits.</p>
+  <p>Si l'image fait \(H\) pixels de haut, qu'on utilise un filtre de taille \(K\), qu'on
+     la borde de \(P\) rangées de zéros (le <em>padding</em>) et qu'on déplace le filtre de
+     \(S\) pixels à chaque pas (le <em>stride</em>), la carte de sortie a pour hauteur :</p>
+  $$ H_{\text{sortie}} = \left\lfloor \frac{H - K + 2P}{S} \right\rfloor + 1 . $$
+  <p>Avec \(K = 3\), \(P = 1\) et \(S = 1\), comme dans mon réseau, on trouve
+     \(H_{\text{sortie}} = H\) : la convolution conserve la taille de l'image. La même formule
+     vaut pour la largeur.</p>
+
+  <h3>Le max-pooling</h3>
+  <p>Après chaque convolution, on applique un <strong>max-pooling</strong> \(2 \times 2\) : on
+     découpe la carte en blocs de \(2 \times 2\) pixels et on ne garde que la plus grande valeur
+     de chaque bloc :</p>
+  $$ P(i, j) = \max_{u, v \in \{0, 1\}} X(2i + u,\, 2j + v) . $$
+  <p>La hauteur et la largeur sont divisées par 2, donc le nombre de pixels par 4, ce qui allège
+     les calculs suivants. Surtout, le réseau devient moins sensible aux petits décalages : si un
+     motif bouge d'un pixel, le maximum de son bloc a de bonnes chances de rester le même.</p>
+
+  <h3>L'implémentation</h3>
+  <p>Mon CNN enchaîne deux blocs « convolution, ReLU, max-pooling », puis deux couches denses
+     pour la décision finale. Voici comment évoluent les dimensions (canaux × hauteur × largeur) :</p>
+  $$ \begin{aligned}
+     1 \times 28 \times 28
+     &\xrightarrow{\text{conv } 3 \times 3,\ 16 \text{ filtres, ReLU}} 16 \times 28 \times 28
+     \xrightarrow{\text{max-pool}} 16 \times 14 \times 14 \\
+     &\xrightarrow{\text{conv } 3 \times 3,\ 32 \text{ filtres, ReLU}} 32 \times 14 \times 14
+     \xrightarrow{\text{max-pool}} 32 \times 7 \times 7 \\
+     &\xrightarrow{\text{aplatir}} 1568
+     \xrightarrow{\text{dense, ReLU}} 128
+     \xrightarrow{\text{dense}} 10
+     \end{aligned} $$
+<pre><code>class ConvNet(nn.Module):
+    def __init__(self):
+        super().__init__()
+        # 1 canal (niveaux de gris) en entrée, 16 filtres 3x3 ; padding=1 garde la taille
+        self.conv1 = nn.Conv2d(in_channels=1, out_channels=16, kernel_size=3, padding=1)
+        self.pool1 = nn.MaxPool2d(kernel_size=2, stride=2)    # 28x28 -> 14x14
+        self.conv2 = nn.Conv2d(in_channels=16, out_channels=32, kernel_size=3, padding=1)
+        self.pool2 = nn.MaxPool2d(kernel_size=2, stride=2)    # 14x14 -> 7x7
+        self.flatten = nn.Flatten()
+        self.fc1 = nn.Linear(32 * 7 * 7, 128)
+        self.fc2 = nn.Linear(128, 10)
+
+    def forward(self, x):
+        x = self.pool1(torch.relu(self.conv1(x)))
+        x = self.pool2(torch.relu(self.conv2(x)))
+        x = self.flatten(x)
+        x = torch.relu(self.fc1(x))
+        return self.fc2(x)</code></pre>
+  <p>Le seul calcul délicat est la taille \(32 \times 7 \times 7 = 1568\) à l'entrée de
+     <code>fc1</code>. Si l'on change le nombre de couches ou le padding, il faut la recalculer.
+     Une astuce évite de le faire à la main : on fait passer une image factice (remplie de zéros)
+     dans les couches de convolution, puis on compte les valeurs obtenues.</p>
+<pre><code>self.features = nn.Sequential(conv1, nn.ReLU(), pool1, conv2, nn.ReLU(), pool2)
+taille = self.features(torch.zeros(1, 1, 28, 28)).numel()   # 1568
+self.fc1 = nn.Linear(taille, 128)</code></pre>
+  <p>J'ai entraîné ce réseau avec l'optimiseur <strong>Adam</strong> (taux d'apprentissage
+     0,001) plutôt qu'avec SGD. Adam adapte automatiquement la taille du pas pour chaque
+     paramètre, à partir de moyennes glissantes du gradient et de son carré. En général, il
+     converge nettement plus vite. Le reste de l'algorithme ne change pas : même entropie
+     croisée, et <code>loss.backward()</code> calcule toujours les gradients, y compris ceux des
+     filtres.</p>
+
+  <h3>Les avantages</h3>
+  <ul>
+    <li><strong>Il exploite la structure de l'image.</strong> Chaque filtre regarde un petit
+        voisinage de pixels, là où se trouve l'information utile : traits, bords, courbes.</li>
+    <li><strong>Il partage ses poids.</strong> Le même filtre sert à toutes les positions de
+        l'image. Mes deux couches de convolution n'ont donc que 4 800 paramètres
+        (\(16 \times 9 + 16 = 160\) puis \(32 \times 16 \times 9 + 32 = 4\,640\)). Une couche dense
+        qui produirait autant de sorties que la première convolution
+        (\(16 \times 28 \times 28 = 12\,544\)) à partir des 784 pixels demanderait près de
+        10 millions de poids. Attention, au total, mon CNN a quand même environ 207 000
+        paramètres, contre 105 000 pour mon réseau dense. Presque tous se trouvent dans la
+        couche dense <code>fc1</code> (200 832 paramètres).</li>
+    <li><strong>Il résiste aux petits décalages.</strong> Un filtre détecte son motif où qu'il
+        soit dans l'image, et le max-pooling gomme les décalages d'un ou deux pixels.</li>
+    <li><strong>Il construit une hiérarchie.</strong> Les premières couches repèrent des traits
+        simples, les suivantes les combinent en formes plus complexes.</li>
+    <li><strong>Il se calcule efficacement.</strong> Une convolution se réécrit comme un grand
+        produit de matrices, l'opération que les cartes graphiques (GPU) exécutent le plus
+        vite.</li>
+  </ul>
+  <p>Sur les 10 000 images de test de MNIST, mon CNN atteint 98,8 % de bonnes réponses après
+     5 époques, contre 93,7 % pour le réseau dense après 10 époques. Une partie de l'écart vient
+     de l'optimiseur : le réseau dense a été entraîné avec SGD, le CNN avec Adam. La démo
+     ci-dessous permet de faire la comparaison à optimiseur égal.</p>
+
+  <h2 id="demo-mnist">9. Démo : entraîner un réseau sur MNIST</h2>
+  <p>MNIST est une base de 70 000 chiffres écrits à la main, en images de \(28 \times 28\)
+     pixels en niveaux de gris. La démo en utilise un extrait de 14 000 images, réparties en
+     trois jeux qui ont chacun un rôle précis :</p>
+  <ul>
+    <li><strong>entraînement</strong> (jusqu'à 10 000 images) : le réseau ajuste ses poids
+        dessus ;</li>
+    <li><strong>validation</strong> (2 000 images) : le réseau ne s'entraîne jamais dessus. On
+        mesure ses performances à la fin de chaque époque pour surveiller le
+        surapprentissage ;</li>
+    <li><strong>test</strong> (2 000 images) : utilisé une seule fois, à la fin, pour mesurer la
+        précision finale et construire la matrice de confusion.</li>
+  </ul>
+  <p>Le <strong>surapprentissage</strong> (<em>overfitting</em>), c'est quand le réseau apprend
+     par cœur ses images d'entraînement, défauts compris, au lieu d'apprendre ce qui fait un
+     « 3 » ou un « 7 ». Sa perte d'entraînement continue alors de baisser, mais sa perte de
+     validation se met à remonter : il devient moins bon sur des images qu'il n'a jamais vues.
+     Pour le provoquer, essayez peu d'images d'entraînement (1 000), un gros réseau et beaucoup
+     d'époques. La ligne pointillée sur les courbes marque l'époque où la perte de validation a
+     été la plus basse.</p>
+  <p>Tout le calcul se fait dans votre navigateur, avec <strong>TensorFlow.js</strong>,
+     l'équivalent de PyTorch en JavaScript. Le premier clic sur « Entraîner » télécharge la
+     bibliothèque et les données, environ 4 Mo. Le réseau dense est entraîné en quelques
+     secondes ; le CNN est plus lent, surtout avec trois couches de convolution.</p>
+
+  <figure id="mnist-demo" data-src="../data/mnist-extrait.js">
+    <div class="controls mn-panneau">
+      <label>Réseau
+        <select id="mn-modele">
+          <option value="dense">dense</option>
+          <option value="cnn">convolutif (CNN)</option>
+        </select>
+      </label>
+      <span id="mn-dense-opts" class="mn-groupe">
+        <label>Couches cachées
+          <input type="range" id="mn-couches" min="1" max="4" step="1" value="2">
+          <span id="mn-couches-val" class="readout">2</span>
+        </label>
+        <label>Neurones par couche <span id="mn-neurones" class="mn-neurones"></span></label>
+      </span>
+      <span id="mn-cnn-opts" class="mn-groupe" style="display: none">
+        <label>Couches de convolution
+          <input type="range" id="mn-conv" min="1" max="3" step="1" value="2">
+          <span id="mn-conv-val" class="readout">2</span>
+        </label>
+      </span>
+      <label>Époques
+        <input type="range" id="mn-epoques" min="1" max="30" step="1" value="10">
+        <span id="mn-epoques-val" class="readout">10</span>
+      </label>
+      <label>Images d'entraînement
+        <select id="mn-taille">
+          <option value="1000">1 000</option>
+          <option value="2000">2 000</option>
+          <option value="5000" selected>5 000</option>
+          <option value="10000">10 000</option>
+        </select>
+      </label>
+      <label>Optimiseur
+        <select id="mn-optim">
+          <option value="sgd">SGD (η = 0,01)</option>
+          <option value="adam">Adam (η = 0,001)</option>
+        </select>
+      </label>
+      <button class="btn" id="mn-run">Entraîner</button>
+      <button class="btn" id="mn-stop" disabled>Arrêter</button>
+    </div>
+    <p class="readout" id="mn-archi"></p>
+    <canvas id="mn-perte" aria-label="Perte d'entraînement et de validation au fil des époques"></canvas>
+    <canvas id="mn-precision" aria-label="Précision d'entraînement et de validation au fil des époques"></canvas>
+    <figcaption>
+      <b>Figure 1.</b> Perte et précision au fil des époques,
+      <span class="legend"><i style="background: var(--accent)"></i>sur les images d'entraînement</span>
+      et <span class="legend"><i style="background: var(--accent-2)"></i>sur les images de validation</span>.
+      <span class="readout" id="mn-statut" aria-live="polite">Cliquez sur « Entraîner » pour commencer.</span>
+    </figcaption>
+  </figure>
+  <p class="note" id="mn-alerte" aria-live="polite" hidden></p>
+
+  <div id="mn-resultats" hidden>
+    <h3>Résultats sur le jeu de test</h3>
+    <p id="mn-score"></p>
+    <figure>
+      <canvas id="mn-cm" aria-label="Matrice de confusion sur le jeu de test"></canvas>
+      <figcaption><b>Figure 2.</b> Matrice de confusion. La case de la ligne \(i\) et de la colonne
+        \(j\) compte les images de test de la classe \(i\) que le réseau a classées en \(j\). La
+        diagonale contient les bonnes réponses, le reste les erreurs (leur couleur est
+        accentuée pour qu'elles restent visibles).</figcaption>
+    </figure>
+    <p>Les confusions les plus fréquentes :</p>
+    <ul id="mn-confusions"></ul>
+    <figure>
+      <canvas id="mn-erreurs" aria-label="Exemples d'images mal classées"></canvas>
+      <figcaption><b>Figure 3.</b> Quelques images de test mal classées. Certaines sont
+        franchement ambiguës, même pour un humain.</figcaption>
+    </figure>
+  </div>
+
+  <h2 id="demo">10. Une autre démo : la frontière de décision</h2>
+  <p>Cette seconde démo montre ce qui se passe à l'intérieur d'un tout petit réseau dense,
+     écrit à la main en JavaScript sans aucune bibliothèque. Il est un peu différent de celui
+     de l'article : activation \(	anh\), un seul neurone de sortie à sigmoïde pour deux classes,
+     et optimiseur Adam. Il apprend à classer des points du plan. Choisissez un jeu de données
+     et lancez l'entraînement. Le fond coloré montre la classe prédite par le réseau en chaque
+     point du plan : plus la couleur est franche, plus le réseau est sûr de lui.</p>
 
   <figure>
     <canvas id="fig-reseau" aria-label="Frontière de décision apprise par le réseau"></canvas>
     <figcaption>
-      <b>Figure 1.</b> Frontière de décision d'un réseau à deux couches cachées de
+      <b>Figure 4.</b> Frontière de décision d'un réseau à deux couches cachées de
       <span id="nn-hidden-label">12</span> neurones, entraîné en direct.
       <span class="controls">
         <label>Données
@@ -147,7 +640,7 @@
 
   <figure>
     <canvas id="fig-perte" aria-label="Courbe de perte au cours de l'entraînement"></canvas>
-    <figcaption><b>Figure 2.</b> Évolution de la perte (échelle logarithmique) au fil des époques.</figcaption>
+    <figcaption><b>Figure 5.</b> Évolution de la perte (échelle logarithmique) au fil des époques.</figcaption>
   </figure>
 
   <p>Quelques expériences intéressantes :</p>
@@ -162,7 +655,7 @@
         aléatoire mène à des minima différents de la fonction de coût.</li>
   </ul>
 
-  <h2 id="applications">6. Intérêt et applications</h2>
+  <h2 id="applications">11. Intérêt et applications</h2>
   <p>Coder un réseau à la main n'a pas pour but de remplacer les bibliothèques, mais de démystifier
      ce qu'elles font : tout repose sur des produits matrice-vecteur, une fonction non linéaire et
      la dérivation en chaîne. Ces mêmes ingrédients, à une échelle bien plus grande, font fonctionner :</p>
@@ -178,16 +671,27 @@
         classification de galaxies, repliement des protéines.</li>
   </ul>
 
-  <h2 id="references">7. Références</h2>
+  <h2 id="references">12. Références</h2>
   <ol class="refs">
     <li>D. E. Rumelhart, G. E. Hinton, R. J. Williams, <em>Learning representations by
         back-propagating errors</em>, Nature 323 (1986).</li>
     <li>G. Cybenko, <em>Approximation by superpositions of a sigmoidal function</em>,
         Mathematics of Control, Signals and Systems 2 (1989).</li>
+    <li>M. Leshno, V. Ya. Lin, A. Pinkus, S. Schocken, <em>Multilayer feedforward networks with a
+        nonpolynomial activation function can approximate any function</em>, Neural Networks 6 (1993).</li>
+    <li>Y. LeCun, L. Bottou, Y. Bengio, P. Haffner, <em>Gradient-based learning applied to document
+        recognition</em>, Proceedings of the IEEE 86 (1998). L'article qui a introduit MNIST et les CNN modernes.</li>
     <li>D. P. Kingma, J. Ba, <em>Adam: A Method for Stochastic Optimization</em>, arXiv:1412.6980 (2014).</li>
     <li>I. Goodfellow, Y. Bengio, A. Courville, <em>Deep Learning</em>, MIT Press (2016).</li>
+    <li>A. Paszke et al., <em>Automatic differentiation in PyTorch</em>, NIPS Autodiff Workshop (2017).</li>
+    <li>D. Smilkov et al., <em>TensorFlow.js: Machine Learning for the Web and Beyond</em>, SysML (2019).</li>
+    <li>A. G. Baydin, B. A. Pearlmutter, A. A. Radul, J. M. Siskind, <em>Automatic differentiation
+        in machine learning: a survey</em>, Journal of Machine Learning Research 18 (2018).</li>
   </ol>
-  <p>Le code complet est dans <a href="../js/reseau.js">reseau.js</a>.</p>
+  <p>Le code PyTorch complet est dans le notebook
+     <a href="https://github.com/liscouetmael/tableau_public/blob/main/Projet_ML.ipynb">Projet_ML.ipynb</a>,
+     celui des démos dans <a href="../js/mnist-demo.js">mnist-demo.js</a>
+     et <a href="../js/reseau.js">reseau.js</a>.</p>
 </article>
 </main>
 

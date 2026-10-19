@@ -13,7 +13,9 @@ a-propos.html           présentation
 css/style.css           tout le style (clair/sombre automatique)
 js/main.js              rendu des équations (KaTeX) + utilitaires pour les figures
 js/arenstorf.js         simulation de l'orbite d'Arenstorf
-js/reseau.js            réseau de neurones et démo
+js/reseau.js            petit réseau codé à la main (démo de la frontière de décision)
+js/mnist-demo.js        démo MNIST : réseau dense ou CNN entraîné dans le navigateur (TensorFlow.js)
+data/mnist-extrait.js   14 000 images de MNIST compressées, chargées par la démo au premier clic
 projets/                un fichier HTML par article
 projets/_modele.html    modèle à copier pour un nouvel article
 images/                 (à créer) figures exportées de Python/Matlab…
