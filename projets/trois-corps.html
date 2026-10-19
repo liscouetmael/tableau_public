@@ -1,0 +1,442 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Le problème à trois corps — Carnet scientifique</title>
+  <meta name="description" content="Chaos, solutions stables connues, exposants de Lyapunov et nombre d'or : le problème à trois corps, avec des simulations interactives.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=JetBrains+Mono&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+  <link rel="stylesheet" href="../css/style.css">
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
+  <script defer src="../js/main.js"></script>
+  <script defer src="../js/trois-corps.js"></script>
+  <style>
+    #tc-sim { aspect-ratio: 1 / 1; max-width: 520px; margin: 0 auto; }
+    #tc-ecart { aspect-ratio: 3 / 1; margin-top: 0.6rem; }
+    #tc-std { aspect-ratio: 1 / 1; max-width: 520px; margin: 0 auto; cursor: crosshair; }
+    #tc-scan { aspect-ratio: 2.2 / 1; }
+    .epigraphe { font-style: italic; margin: 2rem 0 2.5rem; }
+    .epigraphe footer { font-style: normal; font-family: var(--sans); font-size: 0.85rem; color: var(--muted); margin-top: 0.5rem; }
+    .tableau { width: 100%; border-collapse: collapse; font-family: var(--sans); font-size: 0.86rem; margin: 1.2rem 0; }
+    .tableau th, .tableau td { text-align: left; padding: 0.45rem 0.5rem; border-bottom: 1px solid var(--line); vertical-align: top; }
+    .tableau th { color: var(--muted); font-weight: 600; }
+    .tableau td.nombre { font-family: var(--mono); font-size: 0.8rem; white-space: nowrap; }
+    .defile { overflow-x: auto; }
+  </style>
+</head>
+<body>
+
+<header class="site-header">
+  <div class="wrap">
+    <a class="site-title" href="../index.html">Maël <span>· carnet scientifique</span></a>
+    <nav class="site-nav">
+      <a href="../index.html">Projets</a>
+      <a href="../a-propos.html">À propos</a>
+    </nav>
+  </div>
+</header>
+
+<main class="wrap">
+<article>
+  <header class="post-header">
+    <h1>Le problème à trois corps</h1>
+    <p class="lede">Pourquoi trois astres suffisent à rendre l'avenir imprévisible, quelles rares
+       configurations y échappent, et ce que le nombre d'or vient faire là-dedans.</p>
+    <div class="post-meta">
+      <span>Octobre 2026</span>
+      <span>·</span>
+      <span>Projet de cours, Centrale Lyon</span>
+      <span>·</span>
+      <span class="tag">mécanique céleste</span>
+      <span class="tag">chaos</span>
+      <span class="tag">KAM</span>
+    </div>
+  </header>
+
+  <blockquote class="epigraphe">
+    « The universe is a dark forest. Every civilization is an armed hunter stalking through the
+    trees like a ghost, gently pushing aside branches that block the path and trying to tread
+    without sound. Even breathing is done with care. The hunter has to be careful, because
+    everywhere in the forest are stealthy hunters like him. »
+    <footer>Liu Cixin, <em>La Forêt sombre</em> (2008), traduction anglaise de Joel Martinsen (2015).</footer>
+  </blockquote>
+
+  <div class="abstract">
+    <strong>En bref</strong><br>
+    Deux corps qui s'attirent suivent des ellipses parfaitement prévisibles. Avec trois, Poincaré a
+    montré à la fin du XIX<sup>e</sup> siècle que le mouvement peut devenir chaotique : deux
+    situations de départ presque identiques finissent par diverger complètement. On mesure ce
+    chaos avec les <em>exposants de Lyapunov</em>. Il existe pourtant des configurations
+    stables, de Lagrange (1772) jusqu'à l'orbite en huit découverte en 1993. Enfin, le théorème
+    KAM explique pourquoi certains mouvements résistent mieux aux perturbations que d'autres, et
+    pourquoi le nombre d'or y tient une place à part. J'ai voulu tester cette idée sur un système
+    étoile et deux planètes : le résultat est plus nuancé que prévu.
+  </div>
+
+  <nav class="toc">
+    <strong>Sommaire</strong>
+    <ol>
+      <li><a href="#soleils">Trois soleils</a></li>
+      <li><a href="#histoire">De Newton à Poincaré</a></li>
+      <li><a href="#probleme">Le problème général</a></li>
+      <li><a href="#lyapunov">Mesurer le chaos : les exposants de Lyapunov</a></li>
+      <li><a href="#stables">Les solutions stables connues</a></li>
+      <li><a href="#kam">Le théorème KAM et le nombre d'or</a></li>
+      <li><a href="#bouclier">L'expérience du « bouclier d'or »</a></li>
+      <li><a href="#references">Références</a></li>
+    </ol>
+  </nav>
+
+  <h2 id="soleils">1. Trois soleils</h2>
+  <p>Dans <em>Le Problème à trois corps</em> de Liu Cixin, une civilisation vit sur une planète
+     qui tourne autour de trois étoiles. Leurs mouvements sont imprévisibles : il y a des « ères
+     stables », où les jours et les saisons se succèdent normalement, et des « ères chaotiques »,
+     où le soleil peut disparaître pendant des années ou au contraire tout brûler. Dans une
+     scène du jeu vidéo du roman, un personnage s'étonne qu'on transporte un lourd sablier
+     plutôt que de regarder le soleil pour savoir l'heure, et on lui répond :</p>
+  <blockquote>« Le soleil ? Comment le soleil pourrait-il nous donner l'heure ? Nous sommes en
+     pleine ère chaotique ! »<br>
+     <span class="readout">Liu Cixin, <em>Le Problème à trois corps</em>, trad. Gwennaël Gaffric, Actes Sud (2016).</span></blockquote>
+  <p>Le roman n'exagère pas : prédire le mouvement de trois astres qui s'attirent est l'un des
+     plus vieux problèmes de la physique, et l'un des plus difficiles. Cet article reprend un
+     projet mené dans le cours <em>Ordre, chaos et fractales</em> de Christophe Bailly et
+     Didier Dragna à Centrale Lyon. Le cas particulier où le troisième corps est un vaisseau
+     de masse négligeable fait l'objet d'un <a href="orbite-arenstorf.html">article à part, sur
+     l'orbite d'Arenstorf</a>.</p>
+
+  <h2 id="histoire">2. De Newton à Poincaré</h2>
+  <p>Avec sa loi de la gravitation (1687), Newton résout complètement le
+     <strong>problème à deux corps</strong> : chaque corps décrit une conique (ellipse, parabole ou
+     hyperbole) autour du centre de masse, ce qui redonne les lois empiriques de Kepler. Le
+     problème est <em>intégrable</em> : on peut écrire la trajectoire pour tous les temps.</p>
+  <p>Pendant deux siècles, on espère faire de même avec trois corps, au moins de façon
+     approchée. Lagrange et Laplace développent des méthodes de perturbation qui semblent
+     prédire un système solaire stable pour toujours. En 1885, le roi Oscar II de Suède lance un
+     concours de mathématiques ; l'une des questions porte sur la stabilité du système solaire.
+     Henri Poincaré le remporte en 1889 avec un mémoire sur le problème des trois corps. Mais un
+     relecteur, Lars Phragmén, y trouve une erreur. En la corrigeant, Poincaré découvre que
+     certaines trajectoires ont un comportement d'une complexité inouïe. La version publiée en
+     1890 conclut presque le contraire de la première. C'est l'acte de naissance de la théorie
+     du chaos. Poincaré l'a résumé ainsi :</p>
+  <blockquote>« Il peut arriver que de petites différences dans les conditions initiales en
+     engendrent de très grandes dans les phénomènes finaux ; une petite erreur sur les premières
+     produirait une erreur énorme sur les derniers. La prédiction devient impossible. »<br>
+     <span class="readout">Henri Poincaré, <em>Science et méthode</em> (1908).</span></blockquote>
+
+  <h2 id="probleme">3. Le problème général</h2>
+  <p>Trois corps de masses \(m_1, m_2, m_3\), en positions \(\mathbf r_1, \mathbf r_2,
+     \mathbf r_3\), s'attirent deux à deux selon la loi de Newton :</p>
+  $$ m_i\, \ddot{\mathbf r}_i = \sum_{j \neq i} G\, m_i m_j\,
+     \frac{\mathbf r_j - \mathbf r_i}{\lVert \mathbf r_j - \mathbf r_i \rVert^3},
+     \qquad i = 1, 2, 3 . $$
+  <p>Dans le plan, l'état du système est décrit par 12 nombres (deux coordonnées de position et
+     deux de vitesse par corps). Certaines quantités sont conservées : l'énergie, la quantité de
+     mouvement totale et le moment cinétique. Bruns a montré en 1887 qu'il n'y en a pas d'autre
+     de forme algébrique, et il n'en reste pas assez pour résoudre le problème. En 1912, Sundman
+     a bien trouvé une solution sous forme de série convergente, mais elle converge si lentement
+     qu'elle est inutilisable en pratique. Il reste la simulation numérique.</p>
+  <p>Dans la figure ci-dessous, chaque simulation est doublée d'un <strong>jumeau</strong> (les
+     cercles vides) dont le premier corps est décalé d'une quantité minuscule au départ. Si le
+     mouvement est stable, le jumeau reste collé à l'original. S'il est chaotique, l'écart grandit
+     exponentiellement, en ligne droite sur l'échelle logarithmique du bas, jusqu'à ce que les
+     deux simulations n'aient plus rien à voir.</p>
+
+  <figure>
+    <div class="controls">
+      <label>Configuration
+        <select id="tc-preset">
+          <option value="chaos">Trois masses égales, au hasard</option>
+          <option value="huit">Le huit (stable)</option>
+          <option value="troyen">Soleil, Jupiter et un troyen (stable)</option>
+          <option value="lagrange">Lagrange, masses égales (instable)</option>
+          <option value="euler">Euler, alignés (instable)</option>
+          <option value="papillon">Papillon I (instable)</option>
+          <option value="hierarchique">Système hiérarchique (stable)</option>
+        </select>
+      </label>
+      <label>Décalage du jumeau
+        <select id="tc-delta">
+          <option value="1e-2">10⁻²</option>
+          <option value="1e-4">10⁻⁴</option>
+          <option value="1e-6" selected>10⁻⁶</option>
+          <option value="1e-8">10⁻⁸</option>
+          <option value="1e-10">10⁻¹⁰</option>
+        </select>
+      </label>
+      <button class="btn" id="tc-rejouer">Rejouer</button>
+      <button class="btn" id="tc-pause">Pause</button>
+    </div>
+    <canvas id="tc-sim" aria-label="Simulation du problème à trois corps"></canvas>
+    <canvas id="tc-ecart" aria-label="Écart entre la simulation et son jumeau, en échelle logarithmique"></canvas>
+    <figcaption>
+      <b>Figure 1.</b> <span id="tc-descr"></span>
+      <span class="readout" id="tc-info" aria-live="polite"></span>
+    </figcaption>
+  </figure>
+
+  <h2 id="lyapunov">4. Mesurer le chaos : les exposants de Lyapunov</h2>
+  <p>Pour un mouvement chaotique, un petit écart \(\delta_0\) entre deux trajectoires grandit en
+     moyenne comme une exponentielle :</p>
+  $$ \delta(t) \approx \delta_0\, e^{\lambda t}
+     \qquad\Longleftrightarrow\qquad
+     \lambda = \lim_{t \to \infty} \frac{1}{t} \ln \frac{\delta(t)}{\delta_0} . $$
+  <p>Le nombre \(\lambda\) est le plus grand <strong>exposant de Lyapunov</strong>. S'il est
+     strictement positif, le système est chaotique. Son inverse \(T_L = 1/\lambda\), le
+     <strong>temps de Lyapunov</strong>, est l'horizon de prédiction : à chaque durée \(T_L\),
+     l'erreur est multipliée par \(e \approx 2{,}7\). Gagner un facteur 10 sur la précision des
+     mesures initiales ne repousse l'horizon que de \(T_L \ln 10 \approx 2{,}3\,T_L\). Pour le
+     système solaire, Jacques Laskar a trouvé un temps de Lyapunov d'environ 5 millions
+     d'années : impossible de prédire précisément la position des planètes au-delà de quelques
+     dizaines de millions d'années.</p>
+  <p>Un système à \(n\) dimensions a en réalité \(n\) exposants de Lyapunov, un par direction.
+     Pour un système conservatif comme celui-ci (on dit <em>hamiltonien</em>), le volume dans
+     l'espace des états est conservé, et la somme des exposants est nulle : ils vont par paires
+     \(\pm \lambda\). Une direction qui s'étire est compensée par une direction qui se
+     contracte.</p>
+
+  <h3>Comment le calculer</h3>
+  <p>J'ai utilisé deux méthodes dans mon projet.</p>
+  <p><strong>La méthode directe</strong> (mon code MATLAB) suit un « essaim » de trajectoires
+     très proches et calcule \(\lambda(t) = \ln(\delta(t)/\delta_0)/t\) au cours du temps. C'est
+     exactement ce qu'affiche la figure 1. Elle a un défaut : l'écart ne peut pas dépasser la
+     taille du système. Une fois qu'il l'atteint, il <em>sature</em>, et \(\lambda(t)\) se met à
+     décroître artificiellement. Il faut donc s'arrêter avant, et le résultat dépend du moment
+     où l'on s'arrête.</p>
+  <p><strong>La méthode de Benettin</strong> (mon code Python) contourne ce problème. On fait
+     évoluer le jumeau pendant un court intervalle \(\Delta t\), on mesure de combien l'écart a
+     grandi, puis on le <em>ramène</em> à sa taille initiale dans la même direction, et on
+     recommence. L'exposant est la moyenne des taux de croissance :</p>
+<pre><code>def calcul_lyapunov(y0, duree_totale, dt=0.1):
+    delta_0 = 1e-9
+    y_ref  = np.array(y0)
+    y_pert = np.array(y0) + [delta_0, 0, 0, 0]
+    somme = 0
+    for t_step in np.arange(0, duree_totale, dt):
+        y_ref  = solve_ivp(f, (0, dt), y_ref,  rtol=1e-12, atol=1e-12).y[:, -1]
+        y_pert = solve_ivp(f, (0, dt), y_pert, rtol=1e-12, atol=1e-12).y[:, -1]
+        d = np.linalg.norm(y_ref - y_pert)
+        somme += np.log(d / delta_0)
+        y_pert = y_ref + (y_pert - y_ref) * (delta_0 / d)   # renormalisation
+    return somme / duree_totale</code></pre>
+  <p>Comme l'écart reste toujours minuscule, il ne sature jamais, et on peut calculer aussi
+     longtemps qu'on veut. Pour une orbite périodique, il existe une méthode encore plus précise,
+     la <em>matrice de monodromie</em>, que j'utilise dans
+     <a href="orbite-arenstorf.html#lyapunov">l'article sur l'orbite d'Arenstorf</a>.</p>
+
+  <h3>Un piège : la durée finie</h3>
+  <p>Même pour un mouvement parfaitement stable, deux trajectoires voisines s'écartent un peu,
+     mais <em>linéairement</em> (elles n'ont pas tout à fait la même période). Sur une durée
+     finie \(t\), on mesure alors \(\lambda \approx \ln(t)/t\), petit mais positif. Pour trancher,
+     on calcule \(\lambda\) sur deux durées différentes. S'il diminue nettement quand la durée
+     augmente, le mouvement est régulier. S'il reste à peu près constant, il est chaotique.
+     C'est le test que j'ai appliqué aux solutions de la section suivante.</p>
+
+  <h2 id="stables">5. Les solutions stables connues</h2>
+  <p>Malgré le chaos, on connaît des solutions exactes, et quelques-unes sont stables.</p>
+  <p><strong>Euler (1767)</strong> : les trois corps sont alignés et tournent ensemble autour de
+     leur centre de masse, en gardant les mêmes proportions. Cette solution existe pour toutes
+     les masses, mais elle est toujours instable.</p>
+  <p><strong>Lagrange (1772)</strong> : les trois corps forment un triangle équilatéral qui tourne
+     rigidement. Il est stable seulement si l'une des masses domine très largement, plus
+     précisément si \(27\,(m_1 m_2 + m_2 m_3 + m_3 m_1) < (m_1 + m_2 + m_3)^2\) (critère de
+     Gascheau et Routh). C'est le cas du Soleil et de Jupiter : aux sommets du triangle, les
+     points L4 et L5 abritent des milliers d'astéroïdes, les <em>troyens</em>. Le premier,
+     Achille, a été observé en 1906. Avec trois masses égales, en revanche, le triangle se
+     disloque.</p>
+  <p><strong>Le huit (1993–2000)</strong> : Cristopher Moore découvre numériquement en 1993 une
+     orbite où trois masses égales se poursuivent sur une même courbe en forme de huit. Alain
+     Chenciner et Richard Montgomery démontrent son existence en 2000. Elle est stable : de
+     petites perturbations ne la détruisent pas.</p>
+  <p><strong>Les nouvelles familles (depuis 2013)</strong> : Milovan Šuvakov et Veljko
+     Dmitrašinović en trouvent 13 nouvelles familles en 2013, aux noms imagés : papillon,
+     papillon de nuit, yin-yang… Xiaoming Li et Shijun Liao en ajoutent plus de 600 en 2017.
+     La plupart sont instables.</p>
+  <p><strong>Les systèmes hiérarchiques</strong> : en pratique, la façon la plus courante d'être
+     stable est d'éviter que les trois corps se rapprochent tous ensemble. Un couple serré tourne
+     autour d'un troisième corps lointain, comme la Terre et la Lune autour du Soleil. Le système
+     se comporte alors presque comme deux problèmes à deux corps emboîtés.</p>
+  <p>J'ai vérifié chacune de ces solutions avec mon propre intégrateur (Dormand–Prince à pas
+     adaptatif) : l'orbite doit se refermer après une période, et l'exposant de Lyapunov doit
+     baisser quand on allonge la durée de calcul.</p>
+  <div class="defile">
+  <table class="tableau">
+    <thead>
+      <tr><th>Solution</th><th>\(\lambda\) sur 20 périodes</th><th>\(\lambda\) sur 100 périodes</th><th>Verdict</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>Huit</td><td class="nombre">0,050</td><td class="nombre">0,013</td><td>stable</td></tr>
+      <tr><td>Lagrange, Soleil–Jupiter–troyen</td><td class="nombre">0,053</td><td class="nombre">0,013</td><td>stable</td></tr>
+      <tr><td>Papillon de nuit I</td><td class="nombre">0,025</td><td class="nombre">0,006</td><td>stable sur cette durée</td></tr>
+      <tr><td>Système hiérarchique</td><td class="nombre">0,004</td><td class="nombre">0,001</td><td>stable</td></tr>
+      <tr><td>Papillon I</td><td class="nombre">0,115</td><td class="nombre">0,295</td><td>instable</td></tr>
+      <tr><td>Yin-yang Ia</td><td class="nombre">0,088</td><td class="nombre">collision</td><td>instable</td></tr>
+      <tr><td>Lagrange, masses égales</td><td class="nombre">0,79</td><td class="nombre">—</td><td>très instable</td></tr>
+      <tr><td>Euler, masses égales</td><td class="nombre">1,9</td><td class="nombre">—</td><td>très instable</td></tr>
+    </tbody>
+  </table>
+  </div>
+  <p>Pour les deux solutions de Lagrange et d'Euler à masses égales, le temps de Lyapunov est plus
+     court que la période : le système se défait avant d'avoir fait un tour complet.</p>
+
+  <h2 id="kam">6. Le théorème KAM et le nombre d'or</h2>
+
+  <h3>Tores et résonances</h3>
+  <p>Un système intégrable à deux fréquences \(\omega_1\) et \(\omega_2\) (par exemple deux
+     planètes qu'on supposerait sans interaction) se déplace sur un <strong>tore</strong> dans
+     l'espace des états : une surface en forme de chambre à air, que la trajectoire parcourt en
+     tournant à la fois autour et le long. Si le rapport \(\omega_1/\omega_2\) est rationnel, égal
+     à \(p/q\), la trajectoire se referme sur elle-même : le tore est <em>résonant</em>. S'il est
+     irrationnel, elle ne se referme jamais et finit par recouvrir tout le tore : le mouvement est
+     <em>quasi-périodique</em>.</p>
+  <p>Que se passe-t-il quand on ajoute une petite perturbation, l'attraction mutuelle des
+     planètes par exemple ? Le <strong>théorème KAM</strong> (Kolmogorov 1954, Arnold 1963,
+     Moser 1962) répond : si la perturbation est assez petite, la plupart des tores
+     non résonants survivent, juste un peu déformés. Les tores résonants, eux, sont détruits et
+     laissent place à des zones chaotiques. Dans la ceinture d'astéroïdes, les
+     <em>lacunes de Kirkwood</em> sont des zones presque vides exactement là où la période d'un
+     astéroïde serait dans un rapport simple avec celle de Jupiter (3/1, 5/2, 2/1…).</p>
+
+  <h3>Les petits diviseurs</h3>
+  <p>Pourquoi les rapports rationnels posent-ils problème ? Mon cours en donne une version
+     simplifiée. Dans les calculs de perturbation apparaissent des termes de la forme</p>
+  $$ \hat v_k = \frac{\hat u_k}{e^{2 i \pi k \alpha} - 1}, \qquad k \in \mathbb Z^* , $$
+  <p>où \(\alpha\) est le rapport des fréquences. Si \(\alpha = p/q\), le dénominateur s'annule pour
+     \(k = q\) et le calcul explose. Si \(\alpha\) est irrationnel, il ne s'annule jamais, mais il
+     peut devenir très petit quand \(\alpha\) est proche d'une fraction \(p/q\) : ce sont les
+     <strong>petits diviseurs</strong>. Le tore survit d'autant mieux que \(\alpha\) est
+     <em>mal approché</em> par des fractions.</p>
+  <p>Or tous les irrationnels ne se valent pas. Pour tout irrationnel \(\alpha\), il existe une
+     infinité de fractions telles que \(|\alpha - p/q| < 1/(\sqrt 5\, q^2)\) (théorème de
+     Hurwitz), et la constante \(\sqrt 5\) ne peut pas être améliorée : à cause du
+     <strong>nombre d'or</strong> \(\varphi = (1 + \sqrt 5)/2\). C'est l'irrationnel le moins
+     bien approché par des fractions. On le voit sur son développement en fraction continue, qui
+     ne contient que des 1 :</p>
+  $$ \varphi = 1 + \cfrac{1}{1 + \cfrac{1}{1 + \cfrac{1}{1 + \cdots}}}
+     \qquad\Longrightarrow\qquad
+     \frac{2}{1},\ \frac{3}{2},\ \frac{5}{3},\ \frac{8}{5},\ \frac{13}{8},\ \frac{21}{13},\ \ldots $$
+  <p>Ses meilleures approximations sont les rapports de nombres de Fibonacci consécutifs, et elles
+     convergent plus lentement que pour n'importe quel autre nombre. Conséquence : quand on
+     augmente la perturbation, les tores de rapport de fréquences doré sont les
+     <strong>derniers à être détruits</strong>.</p>
+
+  <h3>Le voir sur l'application standard</h3>
+  <p>Le cas où l'on peut le vérifier le plus proprement est l'<strong>application standard</strong>
+     de Chirikov, un modèle minimal de système perturbé :</p>
+  $$ p_{n+1} = p_n + K \sin x_n, \qquad x_{n+1} = x_n + p_{n+1} \pmod{2\pi} . $$
+  <p>Elle ressemble beaucoup à une section de Poincaré d'un problème à trois corps : chaque
+     itération est un « tour », et \(K\) mesure la force de la perturbation. Pour \(K = 0\), toutes
+     les orbites sont des droites horizontales (des tores). Quand \(K\) augmente, les tores
+     résonants se brisent en chapelets d'îlots entourés de chaos, puis les tores irrationnels
+     disparaissent les uns après les autres. John Greene a calculé en 1979 que le dernier à
+     disparaître est celui de nombre de rotation doré, à \(K_c \approx 0{,}9716\). Tant qu'il
+     existe, il forme une barrière infranchissable entre le bas et le haut du diagramme.</p>
+
+  <figure>
+    <canvas id="tc-std" aria-label="Portrait de phase de l'application standard"></canvas>
+    <figcaption>
+      <b>Figure 2.</b> Application standard sur \([0, 2\pi]^2\). En jaune, l'orbite de nombre de
+      rotation doré, trouvée par dichotomie. Cliquez sur la figure pour lancer d'autres orbites.
+      <span class="controls">
+        <label>Perturbation K
+          <input type="range" id="tc-k" min="0" max="1.5" step="0.005" value="0.9">
+          <span class="readout" id="tc-k-val">0,900</span>
+        </label>
+        <button class="btn" id="tc-std-effacer">Effacer mes orbites</button>
+      </span>
+      <span class="readout" id="tc-std-info" aria-live="polite"></span>
+    </figcaption>
+  </figure>
+
+  <h2 id="bouclier">7. L'expérience du « bouclier d'or »</h2>
+  <p>D'où mon idée de projet : une étoile de masse 1000 et deux planètes de masse 15 sur des orbites
+     circulaires, la première à une distance 10, la seconde placée pour que le rapport de leurs
+     périodes vaille le nombre d'or. Par la troisième loi de Kepler (\(T^2 \propto a^3\)), il suffit
+     de la mettre à la distance \(10\,\varphi^{2/3} \approx 13{,}78\). Je comparais avec la
+     résonance 2:1. Sur la durée de mon animation (150 unités de temps, une vingtaine d'orbites),
+     le cas doré paraissait nettement plus calme : la planète extérieure ne s'éloignait pas au-delà
+     de 23 unités, contre 47 pour le cas 2:1.</p>
+  <p>En reprenant ces simulations plus longtemps et plus systématiquement, la conclusion change. J'ai
+     calculé l'exposant de Lyapunov (méthode de Benettin, sur 95 orbites de la planète intérieure)
+     pour 66 rapports de périodes entre 1,45 et 2,1, avec des planètes de masse 3 puis 8 :</p>
+
+  <figure>
+    <canvas id="tc-scan" aria-label="Exposant de Lyapunov en fonction du rapport des périodes"></canvas>
+    <figcaption>
+      <b>Figure 3.</b> Exposant de Lyapunov selon le rapport des périodes des deux planètes,
+      <span class="legend"><i style="background: var(--accent)"></i>planètes de masse 3</span>
+      et <span class="legend"><i style="background: var(--accent-2)"></i>planètes de masse 8</span>
+      (étoile de masse 1000). La ligne pointillée horizontale est le niveau d'un mouvement régulier
+      sur cette durée. Une croix signale une quasi-collision.
+    </figcaption>
+  </figure>
+
+  <ul>
+    <li><strong>Avec mes masses d'origine (15)</strong>, tous les rapports que j'ai testés (3/2, 5/3,
+        8/5, \(\varphi\), 13/8 et 2/1) deviennent chaotiques en quelques orbites, nombre d'or compris :
+        les deux planètes finissent par se frôler. Seul 5/2, où elles sont plus éloignées, reste
+        stable. La différence que je voyais n'était qu'une différence de violence sur un temps
+        court.</li>
+    <li><strong>Avec des planètes de masse 8</strong>, presque tout est chaotique en dessous de 1,9.
+        Au nombre d'or, \(\lambda\) est un peu plus faible que chez ses voisins, mais il reste quatre
+        fois au-dessus du niveau régulier.</li>
+    <li><strong>Avec des planètes de masse 3</strong>, le chaos se limite aux planètes trop proches
+        (rapport inférieur à 1,6) et à une bande autour de la résonance 9/5. Le nombre d'or est
+        régulier… mais 5/3 et 2/1 aussi.</li>
+  </ul>
+  <p>Ce qui décide de la stabilité ici, c'est d'abord <strong>l'écart entre les planètes</strong>,
+     mesuré en <em>rayons de Hill</em> (la zone où l'attraction d'une planète domine celle de
+     l'étoile), puis quelques résonances particulières. Avec des masses de 15, mes deux planètes
+     n'étaient séparées que d'environ 1,5 rayon de Hill, alors qu'il en faut de l'ordre de 3,5
+     pour éviter les rencontres proches.</p>
+  <p>Ce n'est pas une contradiction avec le théorème KAM, mais une limite de son domaine : il
+     décrit des perturbations <em>petites</em>, et dit seulement que le tore doré est le dernier à
+     disparaître quand on les augmente. Dans un système réel, avec des masses non négligeables et
+     de nombreuses résonances qui se chevauchent, cet avantage est noyé dans le reste. Pour
+     vraiment voir l'effet du nombre d'or dans un problème à trois corps, il faudrait des
+     planètes beaucoup plus légères, mesurer le seuil de masse à partir duquel chaque rapport de
+     périodes devient chaotique, et intégrer sur des temps bien plus longs. C'est la prochaine étape
+     de ce projet.</p>
+  <p>Ce que j'en retiens : une simulation courte peut donner une impression trompeuse, et un
+     indicateur quantitatif comme l'exposant de Lyapunov permet de trancher.</p>
+
+  <h2 id="references">8. Références</h2>
+  <ol class="refs">
+    <li>C. Bailly, D. Dragna, <em>Ordre, chaos et fractales</em>, cours de l'École Centrale de Lyon,
+        S8 (version du 24 mars 2026), partie « De Newton à Poincaré ».</li>
+    <li>H. Poincaré, <em>Sur le problème des trois corps et les équations de la dynamique</em>,
+        Acta Mathematica 13 (1890) ; <em>Science et méthode</em>, Flammarion (1908).</li>
+    <li>J. Laskar, <em>A numerical experiment on the chaotic behaviour of the Solar System</em>,
+        Nature 338 (1989).</li>
+    <li>G. Benettin, L. Galgani, A. Giorgilli, J.-M. Strelcyn, <em>Lyapunov characteristic exponents
+        for smooth dynamical systems and for Hamiltonian systems</em>, Meccanica 15 (1980).</li>
+    <li>C. Moore, <em>Braids in classical dynamics</em>, Physical Review Letters 70 (1993).</li>
+    <li>A. Chenciner, R. Montgomery, <em>A remarkable periodic solution of the three-body problem in
+        the case of equal masses</em>, Annals of Mathematics 152 (2000).</li>
+    <li>M. Šuvakov, V. Dmitrašinović, <em>Three classes of Newtonian three-body planar periodic
+        orbits</em>, Physical Review Letters 110 (2013).</li>
+    <li>X. Li, S. Liao, <em>More than six hundred new families of Newtonian periodic planar
+        collisionless three-body orbits</em>, Science China Physics, Mechanics &amp; Astronomy 60
+        (2017).</li>
+    <li>J. M. Greene, <em>A method for determining a stochastic transition</em>, Journal of
+        Mathematical Physics 20 (1979).</li>
+    <li>É. Ghys, <em>Résonances et petits diviseurs</em> (2002), dont le cours [1] reprend
+        l'exemple de l'application du cercle.</li>
+    <li>L. V. Vela-Arévalo, J. E. Marsden, <em>Time–frequency analysis of the restricted three-body
+        problem: transport and resonance transitions</em>, Classical and Quantum Gravity 21 (2004).</li>
+    <li>Liu Cixin, <em>Le Problème à trois corps</em> (2006) et <em>La Forêt sombre</em> (2008),
+        trad. Gwennaël Gaffric, Actes Sud.</li>
+  </ol>
+  <p>Le code des figures est dans <a href="../js/trois-corps.js">trois-corps.js</a>.</p>
+</article>
+</main>
+
+<footer class="site-footer">
+  <div class="wrap"><a href="../index.html">← Tous les projets</a></div>
+</footer>
+
+</body>
+</html>
