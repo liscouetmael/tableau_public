@@ -26,6 +26,8 @@
     .tableau th { color: var(--muted); font-weight: 600; }
     .tableau td.nombre { font-family: var(--mono); font-size: 0.8rem; white-space: nowrap; }
     .defile { overflow-x: auto; }
+    .spoiler { font-family: var(--sans); font-size: 0.9rem; border-left: 3px solid var(--accent); padding: 0.6rem 0.9rem; margin: 1.5rem 0 0; color: var(--muted); }
+    .spoiler strong { color: inherit; }
   </style>
 </head>
 <body>
@@ -56,6 +58,11 @@
       <span class="tag">KAM</span>
     </div>
   </header>
+
+  <p class="spoiler"><strong>⚠ Attention spoiler.</strong> L'épigraphe ci-dessous et la
+     section 1 révèlent des éléments de l'intrigue des romans <em>Le Problème à trois corps</em>
+     et <em>La Forêt sombre</em> de Liu Cixin. Si vous comptez les lire, passez directement à la
+     <a href="#histoire">section 2</a>.</p>
 
   <blockquote class="epigraphe">
     « The universe is a dark forest. Every civilization is an armed hunter stalking through the
@@ -133,12 +140,28 @@
   $$ m_i\, \ddot{\mathbf r}_i = \sum_{j \neq i} G\, m_i m_j\,
      \frac{\mathbf r_j - \mathbf r_i}{\lVert \mathbf r_j - \mathbf r_i \rVert^3},
      \qquad i = 1, 2, 3 . $$
-  <p>Dans le plan, l'état du système est décrit par 12 nombres (deux coordonnées de position et
-     deux de vitesse par corps). Certaines quantités sont conservées : l'énergie, la quantité de
-     mouvement totale et le moment cinétique. Bruns a montré en 1887 qu'il n'y en a pas d'autre
-     de forme algébrique, et il n'en reste pas assez pour résoudre le problème. En 1912, Sundman
-     a bien trouvé une solution sous forme de série convergente, mais elle converge si lentement
-     qu'elle est inutilisable en pratique. Il reste la simulation numérique.</p>
+  <p>Pour prédire la suite du mouvement, il faut connaître à un instant donné la position et la
+     vitesse de chaque corps. Dans le plan, cela fait 4 nombres par corps (deux coordonnées de
+     position, deux de vitesse), donc 12 en tout : c'est l'<strong>état</strong> du système. Si on
+     le connaît à un instant, les équations de Newton déterminent tout le reste. On peut imaginer
+     un espace abstrait à 12 dimensions, l'<strong>espace des états</strong> (on dit aussi
+     <em>espace des phases</em>), où chaque point représente un état possible. Au cours du temps,
+     le système y trace une courbe.</p>
+  <p>Certaines quantités, calculées à partir de ces 12 nombres, ne changent jamais pendant le
+     mouvement : l'énergie totale, la quantité de mouvement totale, le moment cinétique, et le
+     mouvement du centre de masse, qui avance en ligne droite à vitesse constante. Chacune impose
+     une contrainte : la courbe ne peut pas aller n'importe où dans l'espace des états. Un pendule
+     n'est décrit que par 2 nombres, son angle et sa vitesse. La conservation de l'énergie suffit
+     alors : connaissant l'angle, elle donne la vitesse, et le mouvement est entièrement déterminé.
+     Pour deux corps, les quantités conservées suffisent aussi : on obtient les ellipses de
+     Kepler.</p>
+  <p>Pour trois corps, elles ne suffisent plus : la trajectoire garde assez de liberté pour devenir
+     compliquée. Il faudrait d'autres quantités conservées, mais Bruns a démontré en 1887 qu'il
+     n'en existe aucune autre qui s'écrive comme une formule algébrique des positions et des
+     vitesses (avec des sommes, des produits, des racines…). En 1912, Sundman a bien trouvé une
+     solution sous forme de série infinie. Mais il faudrait en calculer un nombre astronomique de
+     termes pour obtenir une précision utile : de l'ordre de \(10^{8\,000\,000}\), selon une
+     estimation de Beloriszky en 1930. Il reste la simulation numérique.</p>
   <p>Dans la figure ci-dessous, chaque simulation est doublée d'un <strong>jumeau</strong> (les
      cercles vides) dont le premier corps est décalé d'une quantité minuscule au départ. Si le
      mouvement est stable, le jumeau reste collé à l'original. S'il est chaotique, l'écart grandit
@@ -192,11 +215,41 @@
      système solaire, Jacques Laskar a trouvé un temps de Lyapunov d'environ 5 millions
      d'années : impossible de prédire précisément la position des planètes au-delà de quelques
      dizaines de millions d'années.</p>
-  <p>Un système à \(n\) dimensions a en réalité \(n\) exposants de Lyapunov, un par direction.
-     Pour un système conservatif comme celui-ci (on dit <em>hamiltonien</em>), le volume dans
-     l'espace des états est conservé, et la somme des exposants est nulle : ils vont par paires
-     \(\pm \lambda\). Une direction qui s'étire est compensée par une direction qui se
-     contracte.</p>
+  <h3>Pourquoi les exposants vont par paires</h3>
+  <p>En réalité, un système dont l'état est décrit par \(n\) nombres a \(n\) exposants de
+     Lyapunov, un par direction de l'espace des états. Un petit écart peut grandir dans certaines
+     directions et rétrécir dans d'autres. Le \(\lambda\) ci-dessus est le plus grand d'entre eux,
+     celui qui finit par dominer.</p>
+  <p>Pour les trois corps, ces exposants ont une propriété particulière, qui vient de la façon dont
+     on peut écrire les équations. Au lieu des vitesses, on utilise les quantités de mouvement
+     \(\mathbf p_i = m_i \mathbf v_i\), et on écrit l'énergie totale en fonction des positions et
+     des quantités de mouvement. Cette fonction s'appelle l'<strong>hamiltonien</strong> :</p>
+  $$ H = \underbrace{\sum_i \frac{\lVert \mathbf p_i \rVert^2}{2 m_i}}_{\text{énergie cinétique}}
+     \;\underbrace{-\sum_{i<j} \frac{G\, m_i m_j}{\lVert \mathbf r_i - \mathbf r_j \rVert}}_{\text{énergie potentielle}} . $$
+  <p>Toute la dynamique se déduit de cette seule fonction, par les
+     <strong>équations de Hamilton</strong> :</p>
+  $$ \dot{\mathbf r}_i = \frac{\partial H}{\partial \mathbf p_i},
+     \qquad
+     \dot{\mathbf p}_i = -\frac{\partial H}{\partial \mathbf r_i} . $$
+  <p>La première redonne \(\dot{\mathbf r}_i = \mathbf p_i / m_i\), c'est-à-dire la définition de
+     la vitesse. La seconde redonne la loi de Newton : dériver l'énergie potentielle par rapport à
+     la position donne la force, au signe près. On n'a rien appris de nouveau sur le mouvement,
+     mais on l'a écrit sous une forme dont on connaît des propriétés générales. Un système dont
+     les équations s'écrivent ainsi est dit <strong>hamiltonien</strong>. C'est le cas dès qu'il
+     n'y a pas de frottement et que les forces dérivent d'une énergie potentielle, comme la
+     gravitation.</p>
+  <p>La propriété qui nous intéresse est le <strong>théorème de Liouville</strong> : dans un
+     système hamiltonien, les volumes se conservent dans l'espace des états. Prenons un petit
+     paquet d'états de départ très proches, comme une goutte d'encre dans de l'eau. Au cours du
+     temps, la goutte peut s'étirer et se déformer, mais son volume reste le même. En théorie du
+     chaos, on appelle <strong>conservatifs</strong> les systèmes qui conservent ainsi les volumes,
+     par opposition aux systèmes <em>dissipatifs</em>, avec frottement, où ils diminuent. Tout
+     système hamiltonien est donc conservatif en ce sens. Attention, le mot ne désigne pas ici
+     seulement la conservation de l'énergie.</p>
+  <p>Conséquence pour les exposants de Lyapunov : si la goutte s'étire dans une direction
+     (exposant positif), elle doit s'amincir dans une autre (exposant négatif) pour garder le même
+     volume. La somme des exposants est donc nulle. On peut même montrer, par un résultat plus fort
+     que Liouville, qu'ils vont par paires \(+\lambda\) et \(-\lambda\).</p>
 
   <h3>Comment le calculer</h3>
   <p>J'ai utilisé deux méthodes dans mon projet.</p>
@@ -409,6 +462,10 @@
         S8 (version du 24 mars 2026), partie « De Newton à Poincaré ».</li>
     <li>H. Poincaré, <em>Sur le problème des trois corps et les équations de la dynamique</em>,
         Acta Mathematica 13 (1890) ; <em>Science et méthode</em>, Flammarion (1908).</li>
+    <li>H. Bruns, <em>Über die Integrale des Vielkörper-Problems</em>, Acta Mathematica 11 (1887).</li>
+    <li>K. F. Sundman, <em>Mémoire sur le problème des trois corps</em>, Acta Mathematica 36 (1912).</li>
+    <li>D. Beloriszky, <em>Application pratique des méthodes de M. Sundman à un cas particulier du
+        problème des trois corps</em>, Bulletin Astronomique 6 (1930).</li>
     <li>J. Laskar, <em>A numerical experiment on the chaotic behaviour of the Solar System</em>,
         Nature 338 (1989).</li>
     <li>G. Benettin, L. Galgani, A. Giorgilli, J.-M. Strelcyn, <em>Lyapunov characteristic exponents
