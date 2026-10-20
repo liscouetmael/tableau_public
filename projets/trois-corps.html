@@ -148,15 +148,32 @@
      <em>espace des phases</em>), où chaque point représente un état possible. Au cours du temps,
      le système y trace une courbe.</p>
   <p>Certaines quantités, calculées à partir de ces 12 nombres, ne changent jamais pendant le
-     mouvement : l'énergie totale, la quantité de mouvement totale, le moment cinétique, et le
-     mouvement du centre de masse, qui avance en ligne droite à vitesse constante. Chacune impose
-     une contrainte : la courbe ne peut pas aller n'importe où dans l'espace des états. Un pendule
-     n'est décrit que par 2 nombres, son angle et sa vitesse. La conservation de l'énergie suffit
-     alors : connaissant l'angle, elle donne la vitesse, et le mouvement est entièrement déterminé.
-     Pour deux corps, les quantités conservées suffisent aussi : on obtient les ellipses de
-     Kepler.</p>
-  <p>Pour trois corps, elles ne suffisent plus : la trajectoire garde assez de liberté pour devenir
-     compliquée. Il faudrait d'autres quantités conservées, mais Bruns a démontré en 1887 qu'il
+     mouvement. Notons \(\mathbf r_i = (x_i, y_i)\) la position du corps \(i\),
+     \(\mathbf v_i = (v_{x,i}, v_{y,i})\) sa vitesse, \(M = m_1 + m_2 + m_3\) la masse totale et
+     \(r_{ij} = \lVert \mathbf r_i - \mathbf r_j \rVert\) la distance entre deux corps.</p>
+  <ul>
+    <li><strong>L'énergie totale</strong> (1 équation), cinétique plus potentielle :
+        $$ E = \sum_{i} \tfrac12 m_i \lVert \mathbf v_i \rVert^2
+               - \sum_{i<j} \frac{G\, m_i m_j}{r_{ij}} = \text{constante}. $$</li>
+    <li><strong>La quantité de mouvement totale</strong> (2 équations, une par composante) :
+        $$ \mathbf P = \sum_i m_i \mathbf v_i = \text{constante}. $$</li>
+    <li><strong>Le moment cinétique</strong> (1 équation, car dans le plan il n'a qu'une
+        composante, perpendiculaire au plan) :
+        $$ L = \sum_i m_i \left( x_i\, v_{y,i} - y_i\, v_{x,i} \right) = \text{constante}. $$</li>
+    <li><strong>Le mouvement du centre de masse</strong> (2 équations) : il avance en ligne droite
+        à vitesse constante, donc sa position à chaque instant est connue d'avance :
+        $$ \frac{1}{M}\sum_i m_i \mathbf r_i = \mathbf r_G(0) + \frac{\mathbf P}{M}\, t . $$</li>
+  </ul>
+  <p>Cela fait 6 équations pour 12 nombres. Chaque équation retire une dimension à la région où le
+     système peut se trouver : l'énergie seule le confine sur une « surface » à 11 dimensions de
+     l'espace des états, et les 6 équations ensemble sur une surface à \(12 - 6 = 6\) dimensions.
+     Restent donc 6 paramètres libres, non fixés par les conservations : en gros, la forme du
+     triangle formé par les trois corps (3 nombres, par exemple les trois distances \(r_{ij}\)),
+     son orientation dans le plan (1 nombre), et 2 combinaisons des vitesses.</p>
+  <p>Pour deux corps, ces conservations, plus une quantité propre à ce cas qui fixe l'orientation
+     de l'ellipse, suffisent à déterminer complètement le mouvement : on obtient les ellipses de
+     Kepler. Pour trois corps, la trajectoire se promène dans une région à 6 dimensions : elle a
+     toute la place de devenir compliquée. Il faudrait d'autres quantités conservées, mais Bruns a démontré en 1887 qu'il
      n'en existe aucune autre qui s'écrive comme une formule algébrique des positions et des
      vitesses (avec des sommes, des produits, des racines…). En 1912, Sundman a bien trouvé une
      solution sous forme de série infinie. Mais il faudrait en calculer un nombre astronomique de
