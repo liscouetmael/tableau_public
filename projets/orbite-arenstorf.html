@@ -23,6 +23,10 @@
     .tableau td.nombre { font-family: var(--mono); font-size: 0.8rem; white-space: nowrap; text-align: right; }
     .tableau tr.total td { font-weight: 600; border-top: 2px solid var(--line); }
     .defile { overflow-x: auto; }
+    .epigraphe { font-style: italic; margin: 2rem 0 2.5rem; }
+    .epigraphe footer { font-style: normal; font-family: var(--sans); font-size: 0.85rem; color: var(--muted); margin-top: 0.5rem; }
+    .spoiler { font-family: var(--sans); font-size: 0.9rem; border-left: 3px solid var(--accent); padding: 0.6rem 0.9rem; margin: 1.5rem 0 0; color: var(--muted); }
+    .spoiler strong { color: inherit; }
   </style>
 </head>
 <body>
@@ -55,22 +59,38 @@
     </div>
   </header>
 
+  <p class="spoiler"><strong>⚠ Attention spoiler.</strong> L'épigraphe ci-dessous et la
+     section 1 révèlent des éléments de l'intrigue des romans <em>Le Problème à trois corps</em>
+     et <em>La Forêt sombre</em> de Liu Cixin. Si vous comptez les lire, passez directement à la
+     <a href="#histoire">section 2</a>.</p>
+
+  <blockquote class="epigraphe">
+    « The universe is a dark forest. Every civilization is an armed hunter stalking through the
+    trees like a ghost, gently pushing aside branches that block the path and trying to tread
+    without sound. Even breathing is done with care. The hunter has to be careful, because
+    everywhere in the forest are stealthy hunters like him. »
+    <footer>Liu Cixin, <em>La Forêt sombre</em> (2008), traduction anglaise de Joel Martinsen (2015).</footer>
+  </blockquote>
+
   <div class="abstract">
     <strong>En bref</strong><br>
-    On modélise un vaisseau soumis à l'attraction de la Terre et de la Lune : c'est le
+    Deux corps qui s'attirent suivent des ellipses parfaitement prévisibles ; avec trois, Poincaré a
+    montré que le mouvement peut devenir chaotique. Je m'intéresse ici à un cas particulier : un
+    vaisseau soumis à l'attraction de la Terre et de la Lune, c'est le
     <em>problème à trois corps restreint</em>. En 1963, Richard Arenstorf a montré qu'il existe des
     orbites périodiques qui passent alternativement près de la Terre et de la Lune, et a proposé
     d'y faire circuler un « ferry » pour le tourisme lunaire. J'en intègre une numériquement, je
     montre pourquoi les méthodes trop simples échouent, puis je mesure son instabilité : une
     erreur de 38 cm au départ devient près de 900 km après un seul tour. Pour finir, je calcule
-    ce qu'il faudrait pour lancer le Titanic depuis la Lune sur cette orbite. Ce projet complète
-    l'article sur <a href="trois-corps.html">le problème à trois corps</a>.
+    ce qu'il faudrait pour lancer le Titanic depuis la Lune sur cette orbite.
   </div>
 
   <nav class="toc">
     <strong>Sommaire</strong>
     <ol>
-      <li><a href="#contexte">Contexte</a></li>
+      <li><a href="#soleils">Trois soleils</a></li>
+      <li><a href="#histoire">De Newton à Poincaré</a></li>
+      <li><a href="#contexte">Le problème restreint</a></li>
       <li><a href="#modele">Le modèle</a></li>
       <li><a href="#orbite">L'orbite d'Arenstorf</a></li>
       <li><a href="#numerique">Intégration numérique</a></li>
@@ -81,13 +101,42 @@
     </ol>
   </nav>
 
-  <h2 id="contexte">1. Contexte</h2>
-  <p>Le problème à deux corps (une planète autour d'une étoile, par exemple) se résout
-     entièrement : les trajectoires sont des coniques, comme l'a montré Kepler. Dès qu'on ajoute
-     un troisième corps, tout change. Poincaré a montré à la fin du XIX<sup>e</sup> siècle qu'il
-     n'existe pas de solution générale exprimable en formules simples, et que le mouvement peut
-     être <em>chaotique</em> (voir <a href="trois-corps.html">l'article sur le problème à trois
-     corps</a>).</p>
+  <h2 id="soleils">1. Trois soleils</h2>
+  <p>Dans <em>Le Problème à trois corps</em> de Liu Cixin, une civilisation vit sur une planète
+     qui tourne autour de trois étoiles. Leurs mouvements sont imprévisibles : il y a des « ères
+     stables », où les jours et les saisons se succèdent normalement, et des « ères chaotiques »,
+     où le soleil peut disparaître pendant des années ou au contraire tout brûler. Dans une
+     scène du jeu vidéo du roman, un personnage s'étonne qu'on transporte un lourd sablier
+     plutôt que de regarder le soleil pour savoir l'heure, et on lui répond :</p>
+  <blockquote>« Le soleil ? Comment le soleil pourrait-il nous donner l'heure ? Nous sommes en
+     pleine ère chaotique ! »<br>
+     <span class="readout">Liu Cixin, <em>Le Problème à trois corps</em>, trad. Gwennaël Gaffric, Actes Sud (2016).</span></blockquote>
+  <p>Le roman n'exagère pas : prédire le mouvement de trois astres qui s'attirent est l'un des
+     plus vieux problèmes de la physique, et l'un des plus difficiles. Cet article reprend un
+     projet mené dans le cours <em>Ordre, chaos et fractales</em> de Christophe Bailly et
+     Didier Dragna à Centrale Lyon, consacré à un cas particulier : celui où le troisième corps
+     est un vaisseau de masse négligeable, entre la Terre et la Lune.</p>
+
+  <h2 id="histoire">2. De Newton à Poincaré</h2>
+  <p>Avec sa loi de la gravitation (1687), Newton résout complètement le
+     <strong>problème à deux corps</strong> : chaque corps décrit une conique (ellipse, parabole ou
+     hyperbole) autour du centre de masse, ce qui redonne les lois empiriques de Kepler. Le
+     problème est <em>intégrable</em> : on peut écrire la trajectoire pour tous les temps.</p>
+  <p>Pendant deux siècles, on espère faire de même avec trois corps, au moins de façon
+     approchée. Lagrange et Laplace développent des méthodes de perturbation qui semblent
+     prédire un système solaire stable pour toujours. En 1885, le roi Oscar II de Suède lance un
+     concours de mathématiques ; l'une des questions porte sur la stabilité du système solaire.
+     Henri Poincaré le remporte en 1889 avec un mémoire sur le problème des trois corps. Mais un
+     relecteur, Lars Phragmén, y trouve une erreur. En la corrigeant, Poincaré découvre que
+     certaines trajectoires ont un comportement d'une complexité inouïe. La version publiée en
+     1890 conclut presque le contraire de la première. C'est l'acte de naissance de la théorie
+     du chaos. Poincaré l'a résumé ainsi :</p>
+  <blockquote>« Il peut arriver que de petites différences dans les conditions initiales en
+     engendrent de très grandes dans les phénomènes finaux ; une petite erreur sur les premières
+     produirait une erreur énorme sur les derniers. La prédiction devient impossible. »<br>
+     <span class="readout">Henri Poincaré, <em>Science et méthode</em> (1908).</span></blockquote>
+
+  <h2 id="contexte">3. Le problème restreint</h2>
   <p>Une simplification très utile consiste à supposer que le troisième corps (un satellite,
      une sonde) a une masse négligeable : il subit l'attraction des deux autres sans les
      perturber. C'est le <strong>problème à trois corps restreint</strong>. Si de plus les deux
@@ -95,7 +144,7 @@
      restreint <em>circulaire</em>. C'est une très bonne approximation du système
      Terre–Lune–vaisseau spatial.</p>
 
-  <h2 id="modele">2. Le modèle</h2>
+  <h2 id="modele">4. Le modèle</h2>
   <p>On se place dans un repère qui tourne avec la Terre et la Lune, centré sur leur barycentre.
      Dans ce repère, les deux corps sont immobiles. On choisit des unités où la distance
      Terre–Lune vaut 1, la masse totale vaut 1 et la vitesse angulaire de rotation vaut 1.
@@ -117,17 +166,56 @@
      <strong>force de Coriolis</strong> (deux forces d'inertie dues à la rotation du repère),
      et les fractions sont l'<strong>attraction gravitationnelle</strong> de la Terre et de la Lune.</p>
 
-  <h3>Une quantité conservée</h3>
-  <p>Ce système n'a pas d'énergie conservée au sens usuel, mais il admet une intégrale première,
-     la <strong>constante de Jacobi</strong>. En notant
-     \(\Omega(x, y) = \tfrac12 (x^2 + y^2) + \mu'/r_1 + \mu/r_2\),</p>
-  $$ C_J = 2\,\Omega(x, y) - \left(\dot x^2 + \dot y^2\right). $$
-  <p>Elle reste exactement constante le long de toute trajectoire. C'est un excellent moyen de
-     vérifier une simulation : si \(C_J\) dérive, c'est que le schéma numérique introduit des
-     erreurs. Elle donne aussi la vitesse en tout point d'une trajectoire, ce qui servira pour le
-     Titanic.</p>
+  <h3>Une quantité conservée : la constante de Jacobi</h3>
+  <p><strong>Pourquoi l'énergie habituelle ne marche pas.</strong> Vu depuis un repère fixe, la
+     Terre et la Lune bougent. L'attraction qu'elles exercent sur le vaisseau change donc au cours
+     du temps, et l'énergie du vaisseau n'est pas conservée : il peut en gagner ou en perdre en
+     passant près de la Lune (c'est le principe de l'assistance gravitationnelle). Mais dans le repère
+     tournant, la Terre et la Lune sont immobiles, et plus rien ne dépend du temps. On peut alors
+     espérer une quantité conservée, à condition de tenir compte des forces d'inertie.</p>
 
-  <h2 id="orbite">3. L'orbite d'Arenstorf</h2>
+  <p><strong>D'où elle sort.</strong> On multiplie la première équation du mouvement par
+     \(\dot x\), la seconde par \(\dot y\), et on les additionne. À gauche, on reconnaît la dérivée de
+     l'énergie cinétique :</p>
+  $$ \ddot x\,\dot x + \ddot y\,\dot y = \frac{d}{dt}\left( \tfrac12 \left( \dot x^2 + \dot y^2 \right) \right) . $$
+  <p>À droite, les termes de Coriolis disparaissent : \(2\dot y\,\dot x - 2\dot x\,\dot y = 0\). Les
+     autres termes sont exactement la dérivée par rapport au temps de la fonction</p>
+  $$ \Omega(x, y) = \underbrace{\tfrac12 \left( x^2 + y^2 \right)}_{\text{centrifuge}}
+     + \underbrace{\frac{\mu'}{r_1}}_{\text{Terre}} + \underbrace{\frac{\mu}{r_2}}_{\text{Lune}} . $$
+  <p>(Par exemple, la dérivée de \(\tfrac12 x^2\) est \(x\dot x\), et celle de \(\mu'/r_1\) est
+     \(-\mu'(x + \mu)\dot x / r_1^3 - \mu' y\,\dot y / r_1^3\) : on retrouve bien les termes des équations,
+     multipliés par \(\dot x\) ou \(\dot y\).) On obtient donc
+     \(\frac{d}{dt}\left( \tfrac12 v^2 \right) = \frac{d\Omega}{dt}\), où \(v^2 = \dot x^2 + \dot y^2\).
+     La différence des deux ne varie pas, et on définit la <strong>constante de Jacobi</strong>
+     (au facteur \(-2\) près, par convention historique) :</p>
+  $$ C_J = 2\,\Omega(x, y) - v^2 = \text{constante}. $$
+
+  <p><strong>Ce que représente chaque terme.</strong> \(C_J\) est, au facteur \(-2\) près, une énergie
+     mesurée dans le repère tournant :</p>
+  <ul>
+    <li>\(v^2\) correspond à l'<strong>énergie cinétique</strong> du vaisseau, avec sa vitesse
+        mesurée dans le repère tournant ;</li>
+    <li>\(\mu'/r_1\) et \(\mu/r_2\) correspondent aux <strong>énergies potentielles de gravitation</strong>
+        de la Terre et de la Lune : elles sont d'autant plus grandes qu'on est près de l'astre ;</li>
+    <li>\(\tfrac12 (x^2 + y^2)\) correspond à l'<strong>énergie potentielle centrifuge</strong> : la force
+        centrifuge pousse le vaisseau vers l'extérieur, d'autant plus fort qu'il est loin du centre de
+        rotation ;</li>
+    <li>la <strong>force de Coriolis</strong> n'apparaît pas : elle est toujours perpendiculaire à la
+        vitesse, donc elle dévie le vaisseau sans jamais l'accélérer ni le freiner. Elle ne travaille
+        pas, comme la force magnétique sur une charge.</li>
+  </ul>
+  <p>Attention au signe : à cause du facteur \(-2\), une grande valeur de \(C_J\) correspond à une
+     <em>petite</em> énergie, et inversement.</p>
+
+  <p><strong>À quoi elle sert.</strong> D'abord à vérifier une simulation : \(C_J\) doit rester
+     constante, et si elle dérive, c'est que le schéma numérique introduit des erreurs. Ensuite, elle
+     donne la vitesse en tout point sans rien intégrer : \(v^2 = 2\,\Omega(x, y) - C_J\). Comme \(v^2\)
+     ne peut pas être négatif, le vaisseau ne peut aller que là où \(2\,\Omega(x, y) \geq C_J\) : certaines
+     régions lui sont interdites. Plus \(C_J\) est grand (moins le vaisseau a d'énergie), plus ces
+     régions s'étendent, jusqu'à l'enfermer autour de la Terre ou de la Lune. Ces deux usages
+     serviront plus loin, pour la section de Poincaré et pour le Titanic.</p>
+
+  <h2 id="orbite">5. L'orbite d'Arenstorf</h2>
   <p>En 1963, Richard Arenstorf, mathématicien au centre spatial Marshall de la NASA, démontre
      l'existence de familles d'orbites périodiques qui passent près des deux corps massifs. Il
      voit tout de suite l'intérêt pour l'astronautique, et termine sa note par une proposition
@@ -157,7 +245,7 @@
      en \(1/r_2^3\) devient énorme, et la vitesse change très vite. Une petite erreur commise à ce
      moment-là est fortement amplifiée par la suite.</p>
 
-  <h2 id="numerique">4. Intégration numérique</h2>
+  <h2 id="numerique">6. Intégration numérique</h2>
   <p>Pour résoudre ces équations sur ordinateur, on les réécrit comme un système du
      premier ordre sur l'état \(s = (x, y, \dot x, \dot y)\) :</p>
   $$ \dot s = f(s), \qquad s(0) = s_0 .$$
@@ -205,12 +293,11 @@
     alors que la difficulté est concentrée près de la Lune. Les méthodes à <em>pas adaptatif</em>
     estiment l'erreur à chaque pas et réduisent \(h\) seulement quand c'est nécessaire. C'est le cas
     de la méthode de Dormand–Prince 5(4), utilisée par le <code>ode45</code> de MATLAB et le
-    <code>RK45</code> de <code>scipy</code> (que j'avais pris à tort, dans mon code, pour un
-    Runge-Kutta d'ordre 4). D'après Hairer, Nørsett et Wanner, elle referme l'orbite à
+    <code>RK45</code> de <code>scipy</code>. D'après Hairer, Nørsett et Wanner, elle referme l'orbite à
     \(10^{-3}\) près en seulement 98 pas, dont 24 rejetés.
   </div>
 
-  <h2 id="lyapunov">5. Sensibilité aux conditions initiales</h2>
+  <h2 id="lyapunov">7. Sensibilité aux conditions initiales</h2>
   <p>Que se passe-t-il si le vaisseau ne part pas <em>exactement</em> du bon point ? Dans la
      figure 3, on décale la position de départ \(x_0\) d'une quantité minuscule et on compare
      les deux trajectoires.</p>
@@ -293,35 +380,23 @@
      fixe au milieu de cette zone chaotique : sa voisine décalée de \(10^{-4}\) s'en éloigne en
      quelques passages, puis quitte le système au bout de 27 traversées. En augmentant \(C_J\) au-delà
      de 3,19 (la valeur du point de Lagrange L1), la région autour de la Terre se referme et le
-     vaisseau ne peut plus rejoindre la Lune. On retrouve ici la même structure que dans
-     <a href="trois-corps.html#kam">l'application standard</a>, mais calculée sur le vrai problème
-     Terre–Lune.</p>
+     vaisseau ne peut plus rejoindre la Lune.</p>
 
-  <h3>L'exposant de Lyapunov d'une orbite périodique</h3>
-  <p>Pour mesurer cette instabilité, j'avais d'abord calculé l'exposant de Lyapunov avec les
-     méthodes décrites dans <a href="trois-corps.html#lyapunov">l'article sur le problème à trois
-     corps</a> (un « essaim » de quatre trajectoires voisines) : \(\lambda \approx 0{,}41\), soit un
-     temps de Lyapunov d'environ 2,5 unités de temps.</p>
-  <p>Pour une orbite périodique, on peut faire beaucoup mieux. On intègre, en même temps que
-     l'orbite, la <em>linéarisation</em> des équations autour d'elle (les équations variationnelles).
-     Après une période, on obtient la <strong>matrice de monodromie</strong> \(M\), une matrice
-     \(4 \times 4\) qui donne exactement ce que devient un petit écart initial \(\delta s_0\) après un
-     tour : \(\delta s_T = M\, \delta s_0\). Comme le système est hamiltonien, ses valeurs propres vont
-     par paires \(\Lambda\) et \(1/\Lambda\), et deux d'entre elles valent 1. Pour l'orbite
-     d'Arenstorf, je trouve</p>
-  $$ \Lambda \approx 285, \qquad
-     \lambda = \frac{\ln \Lambda}{T} \approx 0{,}33, \qquad
-     T_L = \frac{1}{\lambda} \approx 3{,}0 \ \text{unités de temps} \approx 13 \ \text{jours}. $$
-  <p>Tour après tour, un écart est donc multiplié par environ 285. Mais le premier tour est
-     encore pire : la matrice \(M\) mélange fortement les directions, et un écart sur \(x_0\) seul est
-     multiplié par 2,3 millions dès le premier passage. Une erreur de 38 cm sur la position de
-     départ devient ainsi près de 900 km au bout de 74 jours. C'est ce que montre la figure 3.
-     Ma première estimation (\(\lambda \approx 0{,}41\)) était donc du bon ordre de grandeur.</p>
+  <h3>L'exposant de Lyapunov</h3>
+  <p>Pour un mouvement chaotique, un petit écart entre deux trajectoires grandit en moyenne comme une
+     exponentielle, \(\delta(t) \approx \delta_0\, e^{\lambda t}\). Le nombre \(\lambda\) est
+     l'<strong>exposant de Lyapunov</strong>, et son inverse \(1/\lambda\), le <strong>temps de
+     Lyapunov</strong>, est l'horizon de prédiction : à chaque fois que cette durée s'écoule, l'erreur
+     est multipliée par environ 2,7. Dans mon projet, je l'ai estimé en suivant un « essaim » de quatre
+     trajectoires très proches de l'orbite : \(\lambda \approx 0{,}41\), soit un temps de Lyapunov
+     d'environ 2,5 unités de temps, c'est-à-dire 11 jours, bien moins qu'une période de 74 jours. La
+     figure 3 le montre concrètement : un écart de quelques centimètres au départ devient des dizaines
+     de kilomètres après un seul tour.</p>
   <p>En pratique, un vaisseau sur cette orbite devrait corriger sa trajectoire en permanence.
      Arenstorf le savait : il précisait que les perturbations « could be controlled essentially by
      employing continuous electric or other propulsions ».</p>
 
-  <h2 id="titanic">6. Le Net Zero Space Titanic</h2>
+  <h2 id="titanic">8. Le Net Zero Space Titanic</h2>
   <figure>
     <img src="../images/net-zero-space-titanic.png" alt="Le paquebot Titanic flottant dans l'espace, avec l'inscription Net Zero Space Titanic sur la coque" loading="lazy">
     <figcaption><b>Figure 5.</b> L'affiche du projet (image générée).</figcaption>
@@ -330,10 +405,9 @@
      qu'il est déjà posé sur la Lune, et qu'on veut le lancer directement sur l'orbite d'Arenstorf.</p>
 
   <h3>La vitesse à fournir</h3>
-  <p>Dans une première version de mon calcul, j'avais pris la vitesse de l'orbite à son point de
-     départ, \(|\dot y_0| \times 1\,024\) m/s, soit environ 2,05 km/s. C'est oublier que ce point est à
-     676 km d'altitude : il faut d'abord sortir du puits de gravité de la Lune. La constante de Jacobi
-     règle la question. La Lune tourne toujours la même face vers la Terre, donc un point de sa surface
+  <p>Sur l'orbite, au point de départ, le vaisseau va à \(|\dot y_0| \times 1\,024\) m/s, soit environ
+     2,05 km/s. Mais ce point est à 676 km d'altitude : depuis le sol, il faut d'abord sortir du puits de
+     gravité de la Lune. La constante de Jacobi permet de calculer la vitesse nécessaire. La Lune tourne toujours la même face vers la Terre, donc un point de sa surface
      est immobile dans le repère tournant. Pour qu'une trajectoire partant du sol rejoigne l'orbite, elle
      doit avoir la même constante \(C_J\), d'où la vitesse minimale au décollage :</p>
   $$ v_{\text{sol}} = \sqrt{2\,\Omega(x_{\text{sol}}, 0) - C_J}
@@ -381,7 +455,7 @@
      sur place est une autre histoire. Arenstorf avait raison sur un point : mieux vaut un ferry qui
      reste en orbite qu'un paquebot qu'on relance à chaque voyage.</p>
 
-  <h2 id="applications">7. Intérêt et applications</h2>
+  <h2 id="applications">9. Intérêt et applications</h2>
   <p>Au-delà de la blague, le problème à trois corps restreint est au cœur de la conception des
      missions spatiales :</p>
   <ul>
@@ -404,7 +478,7 @@
      parfaite, la sensibilité aux conditions initiales limite ce qu'on peut prédire : il faut
      corriger la trajectoire, pas seulement bien la calculer.</p>
 
-  <h2 id="references">8. Références</h2>
+  <h2 id="references">10. Références</h2>
   <ol class="refs">
     <li>R. F. Arenstorf, <em>Existence of periodic solutions passing near both masses of the
         restricted three-body problem</em>, AIAA Journal 1 (1963), p. 238–240,
@@ -429,6 +503,10 @@
         <a href="https://universemagazine.com/en/lunar-logistics-moves-to-a-shared-flight-model/">Universe Magazine</a> (objectif d'ispace avec Starship, environ 100 000 $/kg).</li>
     <li>PIB mondial 2025 (FMI) : <a href="https://www.statisticstimes.com/m/economy/world-gdp.php">StatisticsTimes</a>.</li>
     <li>Coût de la Station spatiale internationale (estimation de l'ESA) : <a href="https://www.cbc.ca/news2/background/space/iss.html">CBC</a>.</li>
+    <li>H. Poincaré, <em>Sur le problème des trois corps et les équations de la dynamique</em>,
+        Acta Mathematica 13 (1890) ; <em>Science et méthode</em>, Flammarion (1908).</li>
+    <li>Liu Cixin, <em>Le Problème à trois corps</em> (2006) et <em>La Forêt sombre</em> (2008),
+        trad. Gwennaël Gaffric, Actes Sud.</li>
   </ol>
   <p>Le code des simulations est lisible directement dans
      <a href="../js/arenstorf.js">arenstorf.js</a>.</p>

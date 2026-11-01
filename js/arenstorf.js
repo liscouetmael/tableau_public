@@ -85,6 +85,28 @@
     let a = P(VIEW.xmin, 0), b = P(VIEW.xmax, 0); ctx.moveTo(a[0], a[1]); ctx.lineTo(b[0], b[1]);
     a = P(0, VIEW.ymin); b = P(0, VIEW.ymax); ctx.moveTo(a[0], a[1]); ctx.lineTo(b[0], b[1]);
     ctx.stroke();
+    // graduations et noms des axes (unités : distance Terre–Lune)
+    ctx.font = "11px Inter, system-ui, sans-serif";
+    ctx.fillStyle = muted; ctx.strokeStyle = muted;
+    const nombre = (v) => String(v).replace(".", ",");
+    [-1, -0.5, 0.5, 1].forEach((v) => {
+      const px = P(v, 0), py = P(0, v);
+      ctx.beginPath();
+      ctx.moveTo(px[0], px[1] - 3); ctx.lineTo(px[0], px[1] + 3);
+      ctx.moveTo(py[0] - 3, py[1]); ctx.lineTo(py[0] + 3, py[1]);
+      ctx.stroke();
+      ctx.textAlign = "center"; ctx.textBaseline = "bottom";
+      ctx.fillText(nombre(v), px[0], px[1] - 5);
+      ctx.textAlign = "left"; ctx.textBaseline = "middle";
+      ctx.fillText(nombre(v), py[0] + 6, py[1]);
+    });
+    const fx = P(VIEW.xmax, 0), fy = P(0, VIEW.ymax);
+    ctx.font = "italic 13px Inter, system-ui, sans-serif"; ctx.fillStyle = fg;
+    ctx.textAlign = "right"; ctx.textBaseline = "bottom";
+    ctx.fillText("x", fx[0] - 4, fx[1] - 4);
+    ctx.textAlign = "left"; ctx.textBaseline = "top";
+    ctx.fillText("y", fy[0] + 6, fy[1] + 2);
+    ctx.textAlign = "left"; ctx.textBaseline = "alphabetic";
     // Terre et Lune
     const e = P(-MU, 0), m = P(MUP, 0);
     ctx.fillStyle = themeColor("--accent");
@@ -339,8 +361,8 @@
       for (let x = -1; x <= 1.01; x += 0.5) ctx.fillText(x.toFixed(1).replace(".", ","), X(x), h - bas + 6);
       ctx.textAlign = "right"; ctx.textBaseline = "middle";
       for (let v = -2; v <= 2; v += 1) ctx.fillText(v, g - 6, V(v));
-      ctx.textAlign = "right"; ctx.textBaseline = "alphabetic"; ctx.fillText("x →", w - 10, h - bas - 4);
-      ctx.textAlign = "left"; ctx.textBaseline = "top"; ctx.fillText("ẋ", g + 4, 10);
+      ctx.textAlign = "right"; ctx.textBaseline = "alphabetic"; ctx.fillText("position x →", w - 10, h - bas - 4);
+      ctx.textAlign = "left"; ctx.textBaseline = "top"; ctx.fillText("vitesse ẋ ↑", g + 4, 10);
       // Terre et Lune
       [[-MU, "Terre"], [MUP, "Lune"]].forEach(([x, nom]) => {
         ctx.strokeStyle = muted; ctx.setLineDash([2, 4]);

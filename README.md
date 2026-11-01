@@ -13,7 +13,6 @@ a-propos.html           présentation
 css/style.css           tout le style (clair/sombre automatique)
 js/main.js              rendu des équations (KaTeX) + utilitaires pour les figures
 js/arenstorf.js         orbite d'Arenstorf : animation, Euler contre RK4, sensibilité
-js/trois-corps.js       problème à trois corps, application standard, Lyapunov
 js/reseau.js            petit réseau codé à la main (démo de la frontière de décision)
 js/mnist-demo.js        démo MNIST : réseau dense ou CNN entraîné dans le navigateur (TensorFlow.js)
 data/mnist-extrait.js   14 000 images de MNIST compressées, chargées par la démo au premier clic
